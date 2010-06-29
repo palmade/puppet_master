@@ -12,5 +12,11 @@ module Palmade::PuppetMaster
     end
 
     alias :update! :update
+
+    def symbolize_keys
+      n = { }
+      keys.each { |k| n[k.to_sym] = self[k] }
+      n
+    end
   end
 end
