@@ -6,12 +6,12 @@ module Palmade::PuppetMaster
       super(options, &block)
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       master_logger.warn "eventd worker #{worker.proc_tag} started: #{$$}"
 
       # trap(:USR1) {  } do nothing, it should reload logs
-      trap(:QUIT) { stop_work_loop(worker) }
-      [ :TERM, :INT ].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
+      [ :QUIT, :INT ].each { |sig| trap(sig) { stop_work_loop(worker) } } # graceful shutdown
+      [ :TERM, :KILL ].each { |sig| trap(sig) { exit!(0) } } # instant #shutdown
 
       EventMachine.run do
         EventMachine.epoll rescue nil
@@ -29,6 +29,8 @@ module Palmade::PuppetMaster
       worker.stop!
 
       master_logger.warn "eventd worker #{worker.proc_tag} stopped: #{$$}"
+
+      ret
     end
 
     def stop_work_loop(worker)

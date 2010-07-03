@@ -9,11 +9,13 @@ module Palmade::PuppetMaster
     alias :stopped? :stopped
 
     attr_reader :master
+    attr_reader :data
 
     def initialize(m, p, nr)
       @tmp = Palmade::PuppetMaster::Utils.tmpio
       @master = m
       @puppet = p
+      @data = { }
       @logger = @master.logger
 
       @nr = nr
@@ -56,7 +58,9 @@ module Palmade::PuppetMaster
     def work
       @m = 0
       init
-      @puppet.work_loop(self)
+      ret = @puppet.before_work(self)
+      ret = @puppet.work_loop(self, ret)
+      @puppet.after_work(self, ret)
     end
 
     def ok?

@@ -48,7 +48,7 @@ module Palmade::PuppetMaster
       @dispatcher.client
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       super(worker) do
         if block_given?
           yield(self, worker)
@@ -58,6 +58,7 @@ module Palmade::PuppetMaster
 
         EventMachine.next_tick { work_routes(worker) }
       end
+      ret
     end
 
     protected

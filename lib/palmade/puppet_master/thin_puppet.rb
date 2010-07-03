@@ -82,14 +82,14 @@ module Palmade::PuppetMaster
       @thin.backend.config
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       now = Time.now
       master_logger.warn("thin worker #{worker.proc_tag} started: #{$$}, " +
                          "stats: #{@max_total_connections} #{@max_current_connections}")
 
       # trap(:USR1) {  } do nothing, it should reload logs
-      trap(:QUIT) { stop_work_loop(worker) }
-      [ :TERM, :INT ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
+      [ :QUIT, :INT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
+      [ :TERM, :KILL ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
 
       EventMachine.run do
         EventMachine.epoll rescue nil
@@ -112,6 +112,8 @@ module Palmade::PuppetMaster
 
       master_logger.warn("thin worker #{worker.proc_tag} stopped: #{$$}, " +
                          "stats: #{@total_connections}, started #{(Time.now - now).to_i} sec(s) ago")
+
+      ret
     end
 
     def stop_work_loop(worker, now = false)
@@ -197,7 +199,7 @@ module Palmade::PuppetMaster
           app = @options[:rack_builder].call(app, self)
         end
       end
-      
+
       @thin.app = app
 
       # If a prefix is required, wrap in Rack URL mapper

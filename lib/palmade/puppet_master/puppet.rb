@@ -102,16 +102,20 @@ module Palmade::PuppetMaster
       GC.start
     end
 
+    # do nothing
+    def before_work(worker); end
+    def after_work(worker, ret = nil); end
+
     def work_loop=(proc)
       @work_loop = proc
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       master_logger.warn "worker #{worker.proc_tag} started: #{$$}"
 
       # trap(:USR1) {  } do nothing, it should reload logs
-      trap(:QUIT) { worker.stop! }
-      [ :TERM, :INT ].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
+      [ :QUIT, :INT ].each { |sig| trap(sig) { worker.stop! } }
+      [ :TERM, :KILL ].each { |sig| trap(sig) { exit!(0) } } # instant shutdown
 
       begin
         loop do
@@ -139,6 +143,8 @@ module Palmade::PuppetMaster
       end
 
       master_logger.warn "worker #{worker.proc_tag} stopped: #{$$}"
+
+      ret
     end
 
     def stop_work_loop(worker)

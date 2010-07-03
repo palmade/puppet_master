@@ -123,7 +123,7 @@ module Palmade::PuppetMaster
       end
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       master_logger.warn "proxy worker #{worker.proc_tag} started: #{$$}"
 
       # trap(:USR1) {  } do nothing, it should reload logs
@@ -149,6 +149,8 @@ module Palmade::PuppetMaster
       stop
 
       master_logger.warn "proxy worker #{worker.proc_tag} stopped: #{$$}"
+
+      ret
     end
 
     def stop_work_loop(worker, now = false)

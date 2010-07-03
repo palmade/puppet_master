@@ -35,7 +35,7 @@ module Palmade::PuppetMaster
       end
     end
 
-    def work_loop(worker, &block)
+    def work_loop(worker, ret = nil, &block)
       super(worker) do
         if block_given?
           yield(self, worker)
@@ -44,6 +44,7 @@ module Palmade::PuppetMaster
         end
         EventMachine.next_tick { work_tubes(worker) }
       end
+      ret
     end
 
     def after_fork(w)
