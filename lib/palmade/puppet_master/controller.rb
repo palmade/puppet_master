@@ -41,7 +41,7 @@ module Palmade::PuppetMaster
           end
 
           warn "Sending QUIT to #{pid}, #{@kill_timeout} timeout"
-          Process.pid_kill(@pid_file, @kill_timeout)
+          Palmade::PuppetMaster::Utils.pidf_kill(@pid_file, @kill_timeout)
 
           if @config[:tail]
             sleep(2)
@@ -149,16 +149,8 @@ module Palmade::PuppetMaster
       @logger = Logger.new(@config[:log_file])
 
       # double fork here, for some reason Daemonize also said
-      # we should do it!
-      if @config[:tail]
-        t = tail_log(0, false)
-        warn "Tailing... it's safe to hit Ctrl-C to break (it should be daemonizing now)"
-      end
-
-      if fork
-        t.join if @config[:tail]
-        exit(0)
-      end
+      # we should do it! so i'm doing it.
+      exit(0) if fork
 
       # second fork to get off any remaining terminal
       sess_id = Process.setsid
@@ -171,8 +163,8 @@ module Palmade::PuppetMaster
       @logger.close
       @logger = Logger.new(@config[:log_file])
 
-      Palmade::PuppetMaster::Util.redirect_io($stderr, @config[:log_file])
-      Palmade::PuppetMaster::Util.redirect_io($stdout, @config[:log_file])
+      Palmade::PuppetMaster::Utils.redirect_io($stderr, @config[:log_file])
+      Palmade::PuppetMaster::Utils.redirect_io($stdout, @config[:log_file])
       $stdout.sync = $stderr.sync = true
     end
 
@@ -193,11 +185,11 @@ module Palmade::PuppetMaster
     end
 
     def pid
-      Process.pid_read(@pid_file) if verify_pid_file!
+      Palmade::PuppetMaster::Utils.pidf_read(@pid_file) if verify_pid_file!
     end
 
     def running?
-      Process.running_pid?(@pid_file) if verify_pid_file!
+      Palmade::PuppetMaster::Utils.pidf_running?(@pid_file) if verify_pid_file!
     end
 
     def remove_pid_file(noisy = true)

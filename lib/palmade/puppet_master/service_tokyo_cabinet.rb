@@ -1,6 +1,7 @@
 module Palmade::PuppetMaster
   class ServiceTokyoCabinet < Palmade::PuppetMaster::Service
-    cattr_accessor :ttserver_path
+    def self.ttserver_path; @@ttserver_path; end
+    def self.ttserver_path=(tp); @@ttserver_path = tp; end
     self.ttserver_path = `which ttserver`.strip
 
     DEFAULT_OPTIONS = {
@@ -86,7 +87,7 @@ module Palmade::PuppetMaster
         end
       end
 
-      fork_service(ttserver_path, *(cmd_args.strip.split(' ').push(dbname)))
+      fork_service(self.class.ttserver_path, *(cmd_args.strip.split(' ').push(dbname)))
     end
 
     def schema_options

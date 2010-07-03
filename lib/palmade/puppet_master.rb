@@ -78,7 +78,7 @@ module Palmade
       def require_thin
         unless defined?(::Rack)
           # let's load rack
-          gem 'rack', '>= 1.0.0'
+          gem 'rack', '>= 1.2.0'
           require 'rack'
         end
 
@@ -89,6 +89,14 @@ module Palmade
         end
       end
 
+      def require_redis
+        unless defined?(::Redis)
+          gem 'redis', '>= 2.0.0'
+          require 'redis'
+        end
+      end
+
+      # THE FOLLOWING SERVICES HASN'T BEEN UPDATED YET, as of 2010-07-03
       def require_memcache
         unless defined?(::MemCache)
           gem 'memcache-client'
@@ -100,13 +108,6 @@ module Palmade
         unless defined?(::Beanstalk)
           gem 'beanstalk-client'
           require 'beanstalk-client'
-        end
-      end
-
-      def require_redis
-        unless defined?(::Redis)
-          gem 'redis'
-          require 'redis'
         end
       end
 

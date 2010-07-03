@@ -1,6 +1,7 @@
 module Palmade::PuppetMaster
   class ServiceQueue < Palmade::PuppetMaster::Service
-    cattr_accessor :beanstalkd_path
+    def self.beanstalkd_path; @@beanstalkd_path; end
+    def self.beanstalkd_path=(bp); @@beanstalkd_path = bp; end
     self.beanstalkd_path = `which beanstalkd`.strip
 
     DEFAULT_OPTIONS = {
@@ -23,7 +24,7 @@ module Palmade::PuppetMaster
 
       logger.warn "#{@service_name} listen on: #{@listen_host}:#{@listen_port}"
 
-      cmd = "#{beanstalkd_path} -l #{@listen_host} -p #{@listen_port}"
+      cmd = "#{self.class.beanstalkd_path} -l #{@listen_host} -p #{@listen_port}"
       fork_service(cmd)
     end
 

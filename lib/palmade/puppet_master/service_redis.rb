@@ -1,6 +1,7 @@
 module Palmade::PuppetMaster
   class ServiceRedis < Palmade::PuppetMaster::Service
-    cattr_accessor :redis_path
+    def self.redis_path; @@redis_path; end
+    def self.redis_path=(rp); @@redis_path = rp; end
     self.redis_path = `which redis-server`.strip
 
     DEFAULT_OPTIONS = {
@@ -27,7 +28,7 @@ module Palmade::PuppetMaster
       logger.warn "#{@service_name} listening on: #{@listen_host}:#{@listen_port}"
 
       conf_file = write_temporary_conf_file
-      cmd = "#{redis_path} #{conf_file}"
+      cmd = "#{self.class.redis_path} #{conf_file}"
       fork_service(cmd)
     end
 
@@ -59,18 +60,13 @@ module Palmade::PuppetMaster
 
     def reset
       unless @client.nil?
-        close
-        client.connect_to_server
+        @client.client.reconnect
       end
     end
 
     def close
       unless @client.nil?
         @client.quit
-        @client.instance_eval do
-          @sock.close unless @sock.closed? rescue nil
-          @sock = nil
-        end
       end
     end
 

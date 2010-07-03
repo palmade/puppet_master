@@ -1,6 +1,7 @@
 module Palmade::PuppetMaster
   class ServiceCache < Palmade::PuppetMaster::Service
-    cattr_accessor :memcached_path
+    def self.memcached_path; @@memcached_path; end
+    def self.memcached_path=(mp); @@memcached_path = mp; end
     self.memcached_path = `which memcached`.strip
 
     DEFAULT_OPTIONS = {
@@ -22,7 +23,7 @@ module Palmade::PuppetMaster
     end
 
     def start
-      cmd = "#{memcached_path} -P #{service_pid_file} -U 0 -m #{@options[:max_memory]} -t #{@options[:thnum]}"
+      cmd = "#{self.class.memcached_path} -P #{service_pid_file} -U 0 -m #{@options[:max_memory]} -t #{@options[:thnum]}"
       unless @listen_host.nil?
         if @listen_port.nil?
           @listen_port = find_available_port

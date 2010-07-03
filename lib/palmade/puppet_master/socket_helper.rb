@@ -122,8 +122,24 @@ module Palmade::PuppetMaster
       end
     end
 
-    def self.find_available_port(port_range, reserved_ports)
-      Palmade::Net.find_available_port(port_range, reserved_ports)
+    def self.find_available_port(port_range, reserved_ports = Set.new)
+      avail_port = nil
+      s = Socket.new(Socket::Constants::AF_INET, Socket::Constants::SOCK_STREAM, 0)
+      port_range.each do |p|
+        next if reserved_ports.include?(p)
+
+        saddr = Socket.pack_sockaddr_in(p, '127.0.0.1')
+        begin
+          s.bind(saddr)
+          avail_port = p
+          break
+        rescue Errno::EACCES, Errno::EADDRINUSE
+          next
+        end
+      end
+      avail_port
+    ensure
+      s.close
     end
   end
 end

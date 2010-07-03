@@ -45,7 +45,7 @@ module Palmade::PuppetMaster
       if @service_pid.nil?
         @alive = false
       else
-        if Process.running?(@service_pid)
+        if Palmade::PuppetMaster::Utils.process_running?(@service_pid)
           if service_test
             @alive = true
           else
