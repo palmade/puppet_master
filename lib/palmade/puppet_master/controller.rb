@@ -165,6 +165,7 @@ module Palmade::PuppetMaster
 
       Palmade::PuppetMaster::Utils.redirect_io($stderr, @config[:log_file])
       Palmade::PuppetMaster::Utils.redirect_io($stdout, @config[:log_file])
+
       $stdout.sync = $stderr.sync = true
     end
 
