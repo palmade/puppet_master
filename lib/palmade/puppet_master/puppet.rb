@@ -103,7 +103,7 @@ module Palmade::PuppetMaster
     end
 
     # do nothing
-    def before_work(worker); end
+    def before_work(worker, ret = nil); end
     def after_work(worker, ret = nil); end
 
     def work_loop=(proc)

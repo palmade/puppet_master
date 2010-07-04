@@ -58,9 +58,12 @@ module Palmade::PuppetMaster
     def work
       @m = 0
       init
-      ret = @puppet.before_work(self)
+
+      ret = nil
+      ret = @puppet.before_work(self, ret)
       ret = @puppet.work_loop(self, ret)
-      @puppet.after_work(self, ret)
+      ret = @puppet.after_work(self, ret)
+      ret
     end
 
     def ok?
