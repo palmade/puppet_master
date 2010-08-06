@@ -221,7 +221,12 @@ module Palmade::PuppetMaster
           # let's load the camping adapter found on config/camping.rb
           load_camping_adapter
         else
-          opts = @adapter_options.merge(:prefix => @options[:prefix])
+          opts = {
+            :environment => @options[:environment],
+            :root => @options[:root],
+            :prefix => @options[:prefix]
+          }.merge(@adapter_options)
+
           Rack::Adapter.for(@adapter, opts)
         end
       else
