@@ -78,13 +78,13 @@ module Palmade
       def require_thin
         unless defined?(::Rack)
           # let's load rack
-          gem 'rack', '>= 1.2.0'
+          gem 'rack', '>= 1.1.0'
           require 'rack'
         end
 
         unless defined?(::Thin)
           # let's load thin
-          gem 'thin', '>= 1.2.2'
+          gem 'thin', '>= 1.2.7'
           require 'thin'
         end
       end
