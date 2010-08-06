@@ -233,6 +233,12 @@ module Palmade::PuppetMaster
       root = @adapter_options[:root] || Dir.pwd
       camping_boot = File.join(root, "config/camping.rb")
       if File.exists?(camping_boot)
+
+        Object.const_set('CAMPING_ENV', @adapter_options[:environment])
+        Object.const_set('CAMPING_ROOT', @adapter_options[:root])
+        Object.const_set('CAMPING_PREFIX', @adapter_options[:prefix])
+        Object.const_set('CAMPING_OPTIONS', @adapter_options)
+
         require(camping_boot)
 
         if defined?(::Camping)
