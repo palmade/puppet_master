@@ -9,6 +9,7 @@ require 'socket'
 require 'optparse'
 require 'set'
 require 'logger'
+require 'timeout'
 
 gem 'eventmachine'
 require 'eventmachine'
