@@ -151,8 +151,6 @@ module Palmade::PuppetMaster
       notify_alive!(w) unless w.nil?
 
       # do something, after every request is done!
-      # this is actually called when the 'terminate_request' method is
-      # called in the instantiated Thin::Connection
       @post_process.call(conn, w) unless @post_process.nil?
     end
 
