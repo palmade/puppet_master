@@ -9,9 +9,12 @@ module Palmade::PuppetMaster
       :idle_process => nil,
       :prefix => nil,
       :stats => nil,
-      :max_total_connections => 1000,
-      :max_current_connections => 10,
-      :rack_builder => nil
+      :max_total_connections => 10000,
+      :max_current_connections => 100,
+      :max_persistent_connections => 50,
+      :rack_builder => nil,
+      :threaded => false,
+      :thin_configurator => nil
     }
 
     attr_accessor :thin
@@ -38,11 +41,15 @@ module Palmade::PuppetMaster
 
       @post_process = @options[:post_process]
       @idle_process = @options[:idle_process]
+      @idle_timer = nil
 
       @total_connections = 0
       @max_total_connections = @options[:max_total_connections]
-      # how many connections should be in waiting (since we're probably single-threaded)
+
+      # how many connections should be outstanding (including
+      # persistent ones)
       @max_current_connections = @options[:max_current_connections]
+      @max_persistent_connections = @options[:max_persistent_connections]
     end
 
     def build!(m, fam)
@@ -83,12 +90,13 @@ module Palmade::PuppetMaster
     end
 
     def work_loop(worker, ret = nil, &block)
-      now = Time.now
+      loop_start = Time.now
       master_logger.warn("thin worker #{worker.proc_tag} started: #{$$}, " +
-                         "stats: #{@max_total_connections} #{@max_current_connections}")
+                         "stats: #{@max_total_connections} #{@max_current_connections} #{@max_persistent_connections} (#{loop_start})")
 
       # trap(:USR1) {  } do nothing, it should reload logs
-      [ :QUIT, :INT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
+      [ :INT ].each { |sig| trap(sig) { } } # do nothing
+      [ :QUIT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
       [ :TERM, :KILL ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
 
       EventMachine.run do
@@ -106,22 +114,28 @@ module Palmade::PuppetMaster
 
         # schedule a timer, so we can check-in every request
         # just set it to 5 secs, so not to unnecessarily busy ourselves
-        EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
+        @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
       end
       worker.stop!
 
       master_logger.warn("thin worker #{worker.proc_tag} stopped: #{$$}, " +
-                         "stats: #{@total_connections}, started #{(Time.now - now).to_i} sec(s) ago")
+                         "stats: #{@total_connections}, started #{(Time.now - loop_start).to_i} sec(s) ago (#{loop_start})")
 
       ret
     end
 
     def stop_work_loop(worker, now = false)
+      unless @idle_timer.nil?
+        EventMachine.cancel_timer(@idle_timer)
+        @idle_timer = nil
+      end
+
       if now
         @thin.backend.stop!
       else
         @thin.backend.stop
       end
+
       worker.stop!
     end
 
@@ -159,14 +173,13 @@ module Palmade::PuppetMaster
     protected
 
     def idle_time(w)
+      @idle_timer = nil
       notify_alive!(w)
 
       # only, if we're not doing anything at all!
-      if @thin.backend.empty?
-        @idle_process.call(w) unless @idle_process.nil?
-      end
+      @idle_process.call(w) if !@idle_process.nil? && @thin.backend.empty?
 
-      EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
+      @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
     end
 
     def notify_alive!(w)
@@ -184,6 +197,19 @@ module Palmade::PuppetMaster
 
       @thin = Thin::Server.new(thin_opts)
       @thin.backend.puppet = self
+
+      @thin.threaded = @options[:threaded]
+      if @thin.threaded?
+        EventMachine.threadpool_size = @options[:max_current_connections] + 2
+        master_logger.info "Using multithreaded thin and eventmachine support"
+      end
+
+      @thin.maximum_connections = @max_current_connections
+      @thin.maximum_persistent_connections = @max_persistent_connections
+
+      unless @options[:thin_configurator].nil?
+        @options[:thin_configurator].call(@thin)
+      end
 
       app = load_adapter
 
@@ -211,12 +237,18 @@ module Palmade::PuppetMaster
 
     def load_adapter
       unless @adapter.nil?
+        ENV['RACK_ENV'] = @adapter_options[:environment] || 'development'
+        Object.const_set('RACK_ENV', @adapter_options[:environment] || 'development')
+
         if @adapter.is_a?(Module)
           @adapter
         elsif @adapter.respond_to?(:call)
           @adapter.call(self)
         elsif @adapter.is_a?(Class)
           @adapter.new(@adapter_options)
+        elsif @adapter == :sinatra
+          # let's load the sinatra adapter found on config/sinatra.rb
+          load_sinatra_adapter
         elsif @adapter == :camping
           # let's load the camping adapter found on config/camping.rb
           load_camping_adapter
@@ -254,6 +286,34 @@ module Palmade::PuppetMaster
         end
       else
         raise ArgumentError, "Set to load camping adapter, but could not find config/camping.rb"
+      end
+    end
+
+    def load_sinatra_adapter
+      root = @adapter_options[:root] || Dir.pwd
+      sinatra_boot = File.join(root, "config/sinatra.rb")
+      if File.exists?(sinatra_boot)
+
+        Object.const_set('SINATRA_ENV', @adapter_options[:environment])
+        Object.const_set('SINATRA_ROOT', @adapter_options[:root])
+        Object.const_set('SINATRA_PREFIX', @adapter_options[:prefix])
+        Object.const_set('SINATRA_OPTIONS', @adapter_options)
+
+        require(sinatra_boot)
+
+        if defined?(::Sinatra)
+          if Object.const_defined?('SINATRA_APP')
+            Object.const_get('SINATRA_APP')
+          elsif defined?(::Sinatra::Application)
+            Sinatra::Application
+          else
+            raise ArgumentError, "No sinatra app defined"
+          end
+        else
+          raise LoadError, "It looks like Sinatra gem is not loaded properly (::Sinatra not defined)"
+        end
+      else
+        raise ArgumentError, "Set to load sinatra adapter, but could not find config/sinatra.rb"
       end
     end
   end
