@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 module Palmade::PuppetMaster
   class ThinBackend < Thin::Backends::Base
     attr_accessor :sockets
@@ -50,6 +52,8 @@ module Palmade::PuppetMaster
 
       # no need to check if we are stopping
       check_max_current_connections unless @stopping
+
+      self
     end
 
     def initialize_connection(connection)
@@ -58,6 +62,8 @@ module Palmade::PuppetMaster
 
       connection.puppet = puppet
       connection.worker = worker
+
+      self
     end
 
     def port; nil; end
@@ -81,6 +87,8 @@ module Palmade::PuppetMaster
       end
 
       stop! if @connections.empty?
+
+      self
     end
 
     protected

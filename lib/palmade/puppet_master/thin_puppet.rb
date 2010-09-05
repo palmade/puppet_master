@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 module Palmade::PuppetMaster
   class ThinPuppet < Palmade::PuppetMaster::Puppet
     DEFAULT_OPTIONS = {
@@ -14,7 +16,9 @@ module Palmade::PuppetMaster
       :max_persistent_connections => 50,
       :rack_builder => nil,
       :threaded => false,
-      :thin_configurator => nil
+      :thin_configurator => nil,
+      :logging_debug => false,
+      :logging_trace => false
     }
 
     attr_accessor :thin
@@ -113,7 +117,7 @@ module Palmade::PuppetMaster
         end
 
         # schedule a timer, so we can check-in every request
-        # just set it to 5 secs, so not to unnecessarily busy ourselves
+        # just set it to 15 secs, so not to unnecessarily busy ourselves
         @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
       end
       worker.stop!
@@ -160,7 +164,8 @@ module Palmade::PuppetMaster
         # let's try sleeping for a short time, to give other
         # nodes a chance to do their work
         # sleep(0.1)
-        # master_logger.warn "connection finished"
+
+        master_logger.warn "connection finished #{conn}"
       else
         # otherwise, we've served our max requests!
         master_logger.warn "thin worker #{w.proc_tag} served max connections #{@max_total_connections}, gracefully signing off"
@@ -185,6 +190,10 @@ module Palmade::PuppetMaster
     end
 
     def boot_thin!
+      # let's set thin log debugging and trace
+      Thin::Logging.debug = @options[:logging_debug]
+      Thin::Logging.trace = @options[:logging_trace]
+
       thin_opts = { }
 
       # we use our own acceptor based backend
@@ -264,7 +273,7 @@ module Palmade::PuppetMaster
       camping_boot = File.join(root, "config/camping.rb")
       if File.exists?(camping_boot)
 
-        Object.const_set('CAMPING_ENV', @adapter_options[:environment])
+        Object.const_set('CAMPING_ENV', RACK_ENV)
         Object.const_set('CAMPING_ROOT', @adapter_options[:root])
         Object.const_set('CAMPING_PREFIX', @adapter_options[:prefix])
         Object.const_set('CAMPING_OPTIONS', @adapter_options)
@@ -292,7 +301,7 @@ module Palmade::PuppetMaster
       sinatra_boot = File.join(root, "config/sinatra.rb")
       if File.exists?(sinatra_boot)
 
-        Object.const_set('SINATRA_ENV', @adapter_options[:environment])
+        Object.const_set('SINATRA_ENV', RACK_ENV)
         Object.const_set('SINATRA_ROOT', @adapter_options[:root])
         Object.const_set('SINATRA_PREFIX', @adapter_options[:prefix])
         Object.const_set('SINATRA_OPTIONS', @adapter_options)
