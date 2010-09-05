@@ -45,11 +45,19 @@ module Palmade::PuppetMaster
     #
     # @ws_handler = nil
 
+    Cbinary = 'binary'.freeze
     CWebSocket = "WebSocket".freeze
     CUpgrade = "Upgrade".freeze
     CConnection = "Connection".freeze
-    Cws_handler = "ws_handler".freeze
+    CSecWebSocketOrigin = "Sec-WebSocket-Origin".freeze
+    CSecWebSocketLocation = "Sec-WebSocket-Location".freeze
+    CContentLength = "Content-Length".freeze
 
+    CHTTP_ORIGIN = "HTTP_ORIGIN".freeze
+    CHTTP_SEC_WEBSOCKET_KEY1 = "HTTP_SEC_WEBSOCKET_KEY1".freeze
+    CHTTP_SEC_WEBSOCKET_KEY2 = "HTTP_SEC_WEBSOCKET_KEY2".freeze
+
+    Cws_handler = "ws_handler".freeze
     Cws_close_message = "\xff\x00".freeze
     Cws_blank_message = "\x00\xff".freeze
     Cws_frame_message = "\x00%s\xff".freeze
@@ -57,6 +65,9 @@ module Palmade::PuppetMaster
 
     def self.extended(base)
       base.class_eval do
+        alias :post_init_without_websocket :post_init
+        alias :post_init :post_init_with_websocket
+
         alias :receive_data_without_websocket :receive_data
         alias :receive_data :receive_data_with_websocket
 
@@ -71,6 +82,15 @@ module Palmade::PuppetMaster
 
     def receive_data_with_websocket(data)
       receive_data_websocket(data)
+    end
+
+    def post_init_with_websocket
+      post_init_without_websocket
+
+      if defined?(@ws_state) && @ws_state == :connecting
+        @ws_state = :connected
+        @ws_handler.connected(self)
+      end
     end
 
     def unbind_with_websocket
@@ -97,7 +117,7 @@ module Palmade::PuppetMaster
 
       # just ignore an send_data errors, since we're terminating this
       # connection anyway.
-      send_data Cws_blank_message rescue nil
+      send_data Cws_close_message rescue nil
 
       terminate_request
 
@@ -105,7 +125,7 @@ module Palmade::PuppetMaster
     end
 
     def receive_data_websocket(data)
-      trace { data }
+      trace { "WS RCV: #{data}" }
 
       if data =~ Cws_regex_message
         @ws_handler.receive_data(self, $1)
@@ -123,17 +143,21 @@ module Palmade::PuppetMaster
 
     if Thin.ruby_18?
       def send_data_websocket(data)
+        trace { "WS SND: #{data}" }
         send_data(Cws_frame_message % data)
       end
     else
       def send_data_websocket(data)
-        send_data(Cws_frame_message % data.dup.force_encoding('BINARY'))
+        trace { "WS SND: #{data}" }
+        send_data(Cws_frame_message % data.dup.force_encoding(Cbinary))
       end
     end
 
     # from the result (Array), the websocket handler (sort of
     # functions just like an EventMachine connection)
     def websocket_upgrade!(result)
+      debug { "Upgrading connection to web socket #{self}" }
+
       headers = result[1]
 
       if headers.include?(Cws_handler) && !headers[Cws_handler].nil?
@@ -146,7 +170,7 @@ module Palmade::PuppetMaster
       # let's attach the handshake replies if the application did not
       # provide any. this is just a convenience code, to avoid the
       # hassle of calculating the security digest.
-      unless headers.include?('Sec-WebSocket-Origin')
+      unless headers.include?(CSecWebSocketOrigin)
         body = result[2]
 
         # this is a direct hack to clear out the body object attached to
@@ -158,25 +182,26 @@ module Palmade::PuppetMaster
         body.close if body.respond_to?(:close)
 
         # let's insert the other headers for this handshake
+        headers[CSecWebSocketOrigin] = request.env[CHTTP_ORIGIN]
+
         req = Rack::Request.new(request.env)
-        headers['Sec-WebSocket-Origin'] = request.env["HTTP_ORIGIN"]
-
         location = "#{req.scheme == 'https' ? 'wss' : 'ws'}://#{req.host_with_port}#{req.fullpath}"
-        headers['Sec-WebSocket-Location'] = location
+        headers[CSecWebSocketLocation] = location
 
-        sec_key1 = request.env['HTTP_SEC_WEBSOCKET_KEY1']
-        sec_key2 = request.env['HTTP_SEC_WEBSOCKET_KEY2']
+        sec_key1 = request.env[CHTTP_SEC_WEBSOCKET_KEY1]
+        sec_key2 = request.env[CHTTP_SEC_WEBSOCKET_KEY2]
 
         request.body.rewind
         sec_key3 = request.body.read
 
         sec_digest = websocket_security_digest(sec_key1, sec_key2, sec_key3)
+        headers[CContentLength] = sec_digest.size.to_s
 
         # now, replace the body with our digest
         result[2] = sec_digest
       end
 
-      @ws_state = :connected
+      @ws_state = :connecting
     end
 
     def websocket_connected?

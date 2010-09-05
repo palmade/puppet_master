@@ -165,7 +165,7 @@ module Palmade::PuppetMaster
         # nodes a chance to do their work
         # sleep(0.1)
 
-        master_logger.warn "connection finished #{conn}"
+        # master_logger.warn "connection finished #{conn}"
       else
         # otherwise, we've served our max requests!
         master_logger.warn "thin worker #{w.proc_tag} served max connections #{@max_total_connections}, gracefully signing off"
