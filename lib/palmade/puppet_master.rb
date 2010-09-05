@@ -29,10 +29,15 @@ module Palmade
 
     # types of puppets
     autoload :EventdPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/eventd_puppet')
-    autoload :WorklingPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/workling_puppet')
+
     autoload :ThinPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_puppet')
+    autoload :ThinBackend, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_backend')
+    autoload :ThinConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_connection')
+    autoload :ThinWebsocketConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_websocket_connection')
+
     autoload :ProxyPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/proxy_puppet')
     autoload :AsincPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/asinc_puppet')
+    autoload :WorklingPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/workling_puppet')
 
     # auxilliary services
     autoload :Service, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service')
@@ -50,8 +55,6 @@ module Palmade
     # utilities and misc
     autoload :SocketHelper, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/socket_helper')
     autoload :Utils, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/utils')
-    autoload :ThinBackend, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_backend')
-    autoload :ThinConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_connection')
 
     def self.run!(options = { }, &block)
       raise "You can't run multiple masters in the same process!" unless master.nil?
