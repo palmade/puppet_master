@@ -30,7 +30,17 @@ module Palmade::PuppetMaster
       return unless result
 
       # Status code -1 indicates that we're going to respond later (async).
-      return if (result = result.to_a).first == AsyncResponse.first
+      if (result = result.to_a).first == AsyncResponse.first
+        # this is added here to support the rails reloader when in
+        # development mode. it attaches a body wrap, that expects the
+        # web server to call the 'close' method on the body
+        # provided. to finish the request, which triggers the
+        # reloader to unload dynamically loaded objects and unlock the
+        # global mutex.
+        result.last.close if result.last.respond_to?(:close)
+
+        return
+      end
 
       # based on the result, let's check if we're requesting the
       # client to upgrade to WebSocket, if so, let's change our state
@@ -44,6 +54,7 @@ module Palmade::PuppetMaster
       # once here.
       ret = super(result)
       puppet.post_process(self, worker) unless puppet.nil?
+
       ret
     end
 
@@ -67,7 +78,7 @@ module Palmade::PuppetMaster
     end
 
     def websocket_upgrade!(result)
-      # let's add the web socket extensions
+      # let's add the web socket extensions to this connection instance
       self.extend(Palmade::PuppetMaster::ThinWebsocketConnection)
       websocket_upgrade!(result)
     end
