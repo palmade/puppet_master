@@ -64,7 +64,7 @@ module Palmade::PuppetMaster
     Cws_regex_message = (/\A\x00(.*)\xff\Z/nm).freeze
 
     def self.extended(base)
-      base.class_eval do
+      base.instance_eval do
         alias :post_init_without_websocket :post_init
         alias :post_init :post_init_with_websocket
 
@@ -77,7 +77,7 @@ module Palmade::PuppetMaster
     end
 
     def websocket?
-      persistent? && websocket_connected?
+      websocket_connected?
     end
 
     def receive_data_with_websocket(data)

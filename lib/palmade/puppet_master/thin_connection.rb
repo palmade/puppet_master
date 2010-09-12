@@ -30,7 +30,7 @@ module Palmade::PuppetMaster
       return unless result
 
       # Status code -1 indicates that we're going to respond later (async).
-      if (result = result.to_a).first == AsyncResponse.first
+      if (result = result.to_a).first == -1
         # this is added here to support the rails reloader when in
         # development mode. it attaches a body wrap, that expects the
         # web server to call the 'close' method on the body
