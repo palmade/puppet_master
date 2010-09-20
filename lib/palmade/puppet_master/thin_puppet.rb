@@ -263,6 +263,19 @@ module Palmade::PuppetMaster
           opts = @adapter_options.merge(:prefix => @options[:prefix])
           Rack::Adapter.for(@adapter, opts)
         end
+
+        if master_logger.is_a?(Logger)
+          if Logger.private_instance_methods.include?('old_format_message')
+            master_logger.instance_eval do
+              def format_message(*args)
+                old_format_message(*args)
+              end
+            end
+          end
+          if defined?(Logger::Formatter)
+            master_logger.formatter = Logger::Formatter.new
+          end
+        end
       else
         raise ArgumentError, "Rack adapter for Thin is not specified. I'm too lazy to probe what u want to use."
       end
