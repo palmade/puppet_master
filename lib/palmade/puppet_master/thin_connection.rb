@@ -11,6 +11,12 @@ module Palmade::PuppetMaster
 
     def cant_persist!; @can_persist = false; end
 
+    def handle_error
+      log "!! [#{Time.now}]  Unexpected error while processing request: #{$!.message}"
+      log_error
+      close_connection rescue nil
+    end
+
     def post_init
       not_working!
       super
