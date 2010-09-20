@@ -8,8 +8,12 @@ require 'tmpdir'
 require 'socket'
 require 'optparse'
 require 'set'
+require 'syslog'
 require 'logger'
 require 'timeout'
+
+require File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/syslogger')
+require File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/sysloggerio')
 
 gem 'eventmachine'
 require 'eventmachine'

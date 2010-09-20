@@ -146,7 +146,11 @@ module Palmade::PuppetMaster
         warn "We are daemonizing... but no log file is specified, redirecting all output to /dev/null."
         @config[:log_file] = '/dev/null'
       end
-      @logger = Logger.new(@config[:log_file])
+      if @config[:log_file] =~ /^syslog:/
+        @logger = Syslogger.new
+      else
+        @logger = Logger.new(@config[:log_file])
+      end
 
       # double fork here, for some reason Daemonize also said
       # we should do it! so i'm doing it.
@@ -161,12 +165,17 @@ module Palmade::PuppetMaster
 
       # let's just re-open the logger file
       @logger.close
-      @logger = Logger.new(@config[:log_file])
 
-      Palmade::PuppetMaster::Utils.redirect_io($stderr, @config[:log_file])
-      Palmade::PuppetMaster::Utils.redirect_io($stdout, @config[:log_file])
-
-      $stdout.sync = $stderr.sync = true
+      if @config[:log_file] =~ /^syslog:/
+        log_type, app_name = @config[:log_file].split(':', 2)
+        @logger = Syslogger.new(app_name)
+        $stdout = $stderr = SysloggerIO.new(@logger)
+      else
+        @logger = Logger.new(@config[:log_file])
+        Palmade::PuppetMaster::Utils.redirect_io($stderr, @config[:log_file])
+        Palmade::PuppetMaster::Utils.redirect_io($stdout, @config[:log_file])
+        $stdout.sync = $stderr.sync = true
+      end
     end
 
     def tail_log(backtrack = 0, join = true)
