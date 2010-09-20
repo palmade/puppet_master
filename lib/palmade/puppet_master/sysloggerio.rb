@@ -5,7 +5,7 @@ class SysloggerIO
   end
 
   def write(msg)
-    @syslogger.add(Logger::INFO, msg) unless msg.nil? || msg.strip == ""
+    @syslogger.add(Logger::INFO, msg)
   end
   alias print write
   alias puts write
