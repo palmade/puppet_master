@@ -168,7 +168,7 @@ module Palmade::PuppetMaster
 
       if @config[:log_file] =~ /^syslog:/
         log_type, app_name = @config[:log_file].split(':', 2)
-        @logger = Syslogger.new(app_name)
+        @logger = Syslogger.new(app_name, Syslog::LOG_PID | Syslog::LOG_CONS, Syslog::LOG_LOCAL0)
         $stdout = $stderr = SysloggerIO.new(@logger)
       else
         @logger = Logger.new(@config[:log_file])
