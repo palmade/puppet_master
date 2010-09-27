@@ -426,9 +426,9 @@ module Palmade::PuppetMaster
           family.murder_lazy_workers!(self)
           maintain_services!
           family.maintain_workers!(self) if @respawn
-        when :QUIT # graceful shutdown
+        when :QUIT, :INT # graceful shutdown
           stop!
-        when :TERM, :INT # immediate shutdown
+        when :TERM # immediate shutdown
           stop!(false)
         when :USR1 # TODO: rotate logs
           #logger.info "master reopening logs..."

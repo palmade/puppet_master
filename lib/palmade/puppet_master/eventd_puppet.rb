@@ -10,7 +10,8 @@ module Palmade::PuppetMaster
       master_logger.warn "eventd worker #{worker.proc_tag} started: #{$$}"
 
       # trap(:USR1) {  } do nothing, it should reload logs
-      [ :QUIT, :INT ].each { |sig| trap(sig) { stop_work_loop(worker) } } # graceful shutdown
+      [ :INT ].each { |sig| trap(sig) { } } # do nothing
+      [ :QUIT ].each { |sig| trap(sig) { stop_work_loop(worker) } } # graceful shutdown
       [ :TERM, :KILL ].each { |sig| trap(sig) { exit!(0) } } # instant #shutdown
 
       EventMachine.run do

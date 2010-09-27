@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 module Palmade::PuppetMaster
   class ThinBackend < Thin::Backends::Base
     attr_accessor :sockets
@@ -33,8 +35,9 @@ module Palmade::PuppetMaster
       return unless @connected
 
       @signatures.each do |s|
-        EventMachine.stop_accept(s)
+        EventMachine.stop_accept(s) if EventMachine.reactor_running?
       end
+
       @connected = false
       @signatures
     end
@@ -49,6 +52,8 @@ module Palmade::PuppetMaster
 
       # no need to check if we are stopping
       check_max_current_connections unless @stopping
+
+      self
     end
 
     def initialize_connection(connection)
@@ -57,23 +62,42 @@ module Palmade::PuppetMaster
 
       connection.puppet = puppet
       connection.worker = worker
+
+      self
     end
 
-    def port
-      nil
+    def port; nil; end
+
+    def stop
+      super
+
+      # let's check if we have persistent connections that we'd like
+      # to close. the *super* stop above only stops accepting new
+      # connections. but persistent ones still exists. this part goes
+      # through each persistent connections and kills them if it's
+      # sitting idle (not working).
+      unless @connections.empty?
+        @connections.each do |c|
+          if c.working?
+            c.cant_persist!
+          else
+            c.close_connection
+          end
+        end
+      end
+
+      stop! if @connections.empty?
+
+      self
     end
 
     protected
 
     def check_max_current_connections
       if maxed?
-        if @connected
-          disconnect
-        end
+        disconnect if @connected
       else
-        unless @connected
-          connect
-        end
+        connect unless @connected
       end
     end
 
