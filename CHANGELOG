@@ -1,1 +1,5 @@
+v0.2.0 - Released 2010-09-27
+* Added timestamp to thin error handler
+* Added support for syslog
+
 v0.1 Hello World
