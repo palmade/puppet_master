@@ -94,11 +94,11 @@ module Palmade::PuppetMaster
 
     # placeholder, u can override to do ur own pre- and post- code
     def before_fork(worker)
-      before_fork.call(self, worker) unless @before_fork.nil?
+      @before_fork.call(self, worker) unless @before_fork.nil?
     end
 
     def after_fork(worker)
-      after_fork.call(self, worker) unless @after_fork.nil?
+      @after_fork.call(self, worker) unless @after_fork.nil?
       GC.start
     end
 
