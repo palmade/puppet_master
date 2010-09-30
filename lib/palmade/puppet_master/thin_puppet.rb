@@ -211,7 +211,6 @@ module Palmade::PuppetMaster
         master_logger.info "Using multithreaded thin and eventmachine support"
       end
 
-      @thin.maximum_connections = @max_current_connections
       @thin.maximum_persistent_connections = @max_persistent_connections
 
       unless @options[:thin_configurator].nil?
