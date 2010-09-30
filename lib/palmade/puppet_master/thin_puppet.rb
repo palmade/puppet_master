@@ -17,7 +17,7 @@ module Palmade::PuppetMaster
       :rack_builder => nil,
       :threaded => false,
       :thin_configurator => nil,
-      :logging_debug => false,
+      :logging_debug => true,
       :logging_trace => false
     }
 
