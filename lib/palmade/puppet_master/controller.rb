@@ -36,17 +36,8 @@ module Palmade::PuppetMaster
     def stop
       if verify_pid_file!
         if running?
-          if @config[:tail]
-            t = tail_log(0, false)
-          end
-
           warn "Sending QUIT to #{pid}, #{@kill_timeout} timeout"
           Palmade::PuppetMaster::Utils.pidf_kill(@pid_file, @kill_timeout)
-
-          if @config[:tail]
-            sleep(2)
-            t.exit
-          end
         else
           abort "aborted, not running"
         end
@@ -168,29 +159,15 @@ module Palmade::PuppetMaster
 
       if @config[:log_file] =~ /^syslog:/
         log_type, app_name = @config[:log_file].split(':', 2)
-        @logger = Syslogger.new(app_name)
+        @logger = Syslogger.new(app_name, Syslog::LOG_PID | Syslog::LOG_CONS, Syslog::LOG_LOCAL0)
+        Palmade::PuppetMaster::Utils.redirect_io($stderr, '/dev/null')
+        Palmade::PuppetMaster::Utils.redirect_io($stdout, '/dev/null')
         $stdout = $stderr = SysloggerIO.new(@logger)
       else
         @logger = Logger.new(@config[:log_file])
         Palmade::PuppetMaster::Utils.redirect_io($stderr, @config[:log_file])
         Palmade::PuppetMaster::Utils.redirect_io($stdout, @config[:log_file])
         $stdout.sync = $stderr.sync = true
-      end
-    end
-
-    def tail_log(backtrack = 0, join = true)
-      unless @config[:log_file] == '/dev/null'
-        tail_signals = [ 'INT', 'TERM', 'KILL', 'QUIT' ]
-        t = Thread.new do
-          tail_signals.each { |s| trap(s) { Thread.exit } }
-          begin
-            File.tail(@config[:log_file], backtrack, false)
-          ensure
-            tail_signals.each { |s| trap(s, 'DEFAULT') }
-          end
-        end
-
-        join ? t.join : t
       end
     end
 

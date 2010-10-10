@@ -211,7 +211,6 @@ module Palmade::PuppetMaster
         master_logger.info "Using multithreaded thin and eventmachine support"
       end
 
-      @thin.maximum_connections = @max_current_connections
       @thin.maximum_persistent_connections = @max_persistent_connections
 
       unless @options[:thin_configurator].nil?
@@ -219,6 +218,18 @@ module Palmade::PuppetMaster
       end
 
       app = load_adapter
+
+      # Revert logger if Rails changes Logger behavior
+      if master_logger.is_a?(Logger)
+        if Logger.private_instance_methods.include?('old_format_message')
+          master_logger.instance_eval do
+            alias format_message old_format_message
+          end
+        end
+        if defined?(Logger::Formatter)
+          master_logger.formatter = Logger::Formatter.new
+        end
+      end
 
       # added support to hook a Rack builder into the Thin boot-up
       # process. this is commonly used when the app framework don't
@@ -262,19 +273,6 @@ module Palmade::PuppetMaster
         else
           opts = @adapter_options.merge(:prefix => @options[:prefix])
           Rack::Adapter.for(@adapter, opts)
-        end
-
-        if master_logger.is_a?(Logger)
-          if Logger.private_instance_methods.include?('old_format_message')
-            master_logger.instance_eval do
-              def format_message(*args)
-                old_format_message(*args)
-              end
-            end
-          end
-          if defined?(Logger::Formatter)
-            master_logger.formatter = Logger::Formatter.new
-          end
         end
       else
         raise ArgumentError, "Rack adapter for Thin is not specified. I'm too lazy to probe what u want to use."
