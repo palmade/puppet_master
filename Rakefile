@@ -3,7 +3,7 @@ gem 'echoe'
 require 'echoe'
 
 Echoe.new("puppet_master") do |p|
-  p.author="markjeee"
+  p.author = "palmade"
   p.project = "palmade"
   p.summary = "Master of puppets"
 
@@ -15,4 +15,3 @@ Echoe.new("puppet_master") do |p|
   p.clean_pattern += [ "pkg", "lib/*.bundle", "*.gem", ".config" ]
   p.rdoc_pattern = [ 'README', 'LICENSE', 'COPYING', 'lib/**/*.rb', 'doc/**/*.rdoc' ]
 end
-
