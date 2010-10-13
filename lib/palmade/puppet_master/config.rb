@@ -13,6 +13,14 @@ module Palmade::PuppetMaster
 
     alias :update! :update
 
+    def [](key)
+      fetch(key.to_sym, nil)
+    end
+
+    def []=(key, val)
+      store(key.to_sym, val)
+    end
+
     def symbolize_keys
       n = { }
       keys.each { |k| n[k.to_sym] = self[k] }
