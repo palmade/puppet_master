@@ -231,17 +231,8 @@ module Palmade::PuppetMaster
         end
       end
 
-      # added support to hook a Rack builder into the Thin boot-up
-      # process. this is commonly used when the app framework don't
-      # support rack style middleware attachment (e.g. Rails 2.x ActionController:Dispatcher.middleware)
       unless @options[:rack_builder].nil?
-        if app.is_a?(Rack::Adapter::Rails)
-          ra = app.send(:instance_variable_get, :@rails_app)
-          ra = @options[:rack_builder].call(ra, self)
-          app.send(:instance_variable_set, :@rails_app, ra)
-        else
-          app = @options[:rack_builder].call(app, self)
-        end
+        app = @options[:rack_builder].call(app, self)
       end
 
       @thin.app = app
