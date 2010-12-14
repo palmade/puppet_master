@@ -14,11 +14,20 @@ module Palmade::PuppetMaster
     alias :update! :update
 
     def [](key)
-      fetch(key.to_sym, nil)
+      fetch(prep(key), nil)
     end
 
     def []=(key, val)
-      store(key.to_sym, val)
+      store(prep(key), val)
+    end
+
+    def include?(section)
+      super(prep(section))
+    end
+    alias :has? :include?
+
+    def prep(section)
+      section.to_sym
     end
 
     def symbolize_keys
