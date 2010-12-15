@@ -3,8 +3,8 @@ gem 'echoe'
 require 'echoe'
 
 Echoe.new("puppet_master") do |p|
-  p.author = "palmade"
-  p.project = "palmade"
+  p.author  = "Palmade"
+  p.project = "Puppet Master"
   p.summary = "Master of puppets"
 
   p.dependencies = [ ]

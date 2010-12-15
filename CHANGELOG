@@ -1,3 +1,7 @@
+v0.2.1
+* Fixed bug with thin and system fd limit
+* Fixed bug for config files symbols and string consistency
+
 v0.2.0 - Released 2010-09-27
 * Added timestamp to thin error handler
 * Added support for syslog

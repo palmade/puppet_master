@@ -20,6 +20,8 @@ lib/palmade/puppet_master/service_queue.rb
 lib/palmade/puppet_master/service_redis.rb
 lib/palmade/puppet_master/service_tokyo_cabinet.rb
 lib/palmade/puppet_master/socket_helper.rb
+lib/palmade/puppet_master/syslogger.rb
+lib/palmade/puppet_master/sysloggerio.rb
 lib/palmade/puppet_master/thin_backend.rb
 lib/palmade/puppet_master/thin_connection.rb
 lib/palmade/puppet_master/thin_puppet.rb
@@ -27,5 +29,6 @@ lib/palmade/puppet_master/thin_websocket_connection.rb
 lib/palmade/puppet_master/utils.rb
 lib/palmade/puppet_master/worker.rb
 lib/palmade/puppet_master/workling_puppet.rb
+puppet_master.gemspec
 test/test_helper.rb
 test/thin_websocket_test.rb
