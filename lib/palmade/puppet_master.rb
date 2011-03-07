@@ -39,16 +39,9 @@ module Palmade
     autoload :ThinConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_connection')
     autoload :ThinWebsocketConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_websocket_connection')
 
-    autoload :ProxyPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/proxy_puppet')
-    autoload :AsincPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/asinc_puppet')
-    autoload :WorklingPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/workling_puppet')
-
     # auxilliary services
     autoload :Service, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service')
-    autoload :ServiceCache, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_cache')
-    autoload :ServiceQueue, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_queue')
     autoload :ServiceRedis, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_redis')
-    autoload :ServiceTokyoCabinet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_tokyo_cabinet')
 
     # common set of launchers
     autoload :Config, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/config')
@@ -106,27 +99,7 @@ module Palmade
           require 'redis'
         end
       end
-
-      # THE FOLLOWING SERVICES HASN'T BEEN UPDATED YET, as of 2010-07-03
-      def require_memcache
-        unless defined?(::MemCache)
-          gem 'memcache-client'
-          require 'memcache'
-        end
-      end
-
-      def require_beanstalk
-        unless defined?(::Beanstalk)
-          gem 'beanstalk-client'
-          require 'beanstalk-client'
-        end
-      end
-
-      def require_tt
-        unless defined?(::TokyoTyrant)
-          require 'tokyotyrant'
-        end
-      end
     end
+
   end
 end
