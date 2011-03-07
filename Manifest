@@ -3,7 +3,6 @@ Manifest
 README
 Rakefile
 lib/palmade/puppet_master.rb
-lib/palmade/puppet_master/asinc_puppet.rb
 lib/palmade/puppet_master/config.rb
 lib/palmade/puppet_master/configurator.rb
 lib/palmade/puppet_master/controller.rb
@@ -11,14 +10,10 @@ lib/palmade/puppet_master/eventd_puppet.rb
 lib/palmade/puppet_master/family.rb
 lib/palmade/puppet_master/family/standard_puppets.rb
 lib/palmade/puppet_master/master.rb
-lib/palmade/puppet_master/proxy_puppet.rb
 lib/palmade/puppet_master/puppet.rb
 lib/palmade/puppet_master/runner.rb
 lib/palmade/puppet_master/service.rb
-lib/palmade/puppet_master/service_cache.rb
-lib/palmade/puppet_master/service_queue.rb
 lib/palmade/puppet_master/service_redis.rb
-lib/palmade/puppet_master/service_tokyo_cabinet.rb
 lib/palmade/puppet_master/socket_helper.rb
 lib/palmade/puppet_master/syslogger.rb
 lib/palmade/puppet_master/sysloggerio.rb
@@ -28,7 +23,6 @@ lib/palmade/puppet_master/thin_puppet.rb
 lib/palmade/puppet_master/thin_websocket_connection.rb
 lib/palmade/puppet_master/utils.rb
 lib/palmade/puppet_master/worker.rb
-lib/palmade/puppet_master/workling_puppet.rb
 puppet_master.gemspec
 test/test_helper.rb
 test/thin_websocket_test.rb

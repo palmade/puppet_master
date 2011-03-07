@@ -95,18 +95,9 @@ module Palmade::PuppetMaster
 
     def use_service(type, options = { })
       case type
-      when :cache
-        raise "Cache service already exist!" if @services.include?(:cache)
-        @services[:cache] = Palmade::PuppetMaster::ServiceCache.new(self, :cache, options)
-      when :queue
-        raise "Queue service already exist!" if @services.include?(:queue)
-        @services[:queue] = Palmade::PuppetMaster::ServiceQueue.new(self, :queue, options)
       when :redis
         raise "Redis service already exist!" if @services.include?(:redis)
         @services[:redis] = Palmade::PuppetMaster::ServiceRedis.new(self, :redis, options)
-      when :tokyo_cabinet
-        raise "Tokyo Cabinet service already exist!" if @services.include?(:tokyo_cabinet)
-        @services[:tokyo_cabinet] = Palmade::PuppetMaster::ServiceTokyoCabinet.new(self, :tokyo_cabinet, options)
       else
         raise "Unknown service type"
       end
