@@ -14,6 +14,10 @@ module Palmade
           create_puppet(:thin, k, options, &block)
         end
 
+        def mongrel2_puppet(k = nil, options = nil, &block)
+          create_puppet(:mongrel2, k, options, &block)
+        end
+
         def create_puppet(type, k = nil, options = nil, &block)
           if options.nil?
             if k.is_a?(Hash)
@@ -35,6 +39,8 @@ module Palmade
             @puppets[k] = Palmade::PuppetMaster::Puppet.new(options, &block)
           when :thin
             @puppets[k] = Palmade::PuppetMaster::ThinPuppet.new(options, &block)
+          when :mongrel2
+            @puppets[k] = Palmade::PuppetMaster::Mongrel2Puppet.new(options, &block)
           else
             raise "Unknown puppet type: #{type}"
           end

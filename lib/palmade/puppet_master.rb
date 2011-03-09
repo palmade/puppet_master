@@ -39,6 +39,8 @@ module Palmade
     autoload :ThinConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_connection')
     autoload :ThinWebsocketConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_websocket_connection')
 
+    autoload :Mongrel2Puppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/mongrel2_puppet')
+
     # auxilliary services
     autoload :Service, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service')
     autoload :ServiceRedis, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_redis')
