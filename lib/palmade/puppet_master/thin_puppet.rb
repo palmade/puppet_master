@@ -334,7 +334,7 @@ module Palmade::PuppetMaster
       if @adapter_options.include?(:rack_boot)
         rack_boot = @adapter_options[:rack_boot]
       else
-        rack_boot = File.join(root, "config/rack.rb")
+        rack_boot = File.join(root, "config.ru")
         unless File.exists?(rack_boot)
           raise ArgumentError, "Set to load rack adapter, but could not find #{rack_boot}"
         end
