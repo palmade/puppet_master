@@ -255,7 +255,7 @@ module Palmade::PuppetMaster
           @adapter.call(self)
         elsif @adapter.is_a?(Class)
           @adapter.new(@adapter_options)
-        elsif @adapter == :rack
+        elsif @adapter == :rack_legacy
           load_rack_adapter
         elsif @adapter == :sinatra
           # let's load the sinatra adapter found on config/sinatra.rb
