@@ -11,8 +11,8 @@ lib/palmade/puppet_master/family.rb
 lib/palmade/puppet_master/family/standard_puppets.rb
 lib/palmade/puppet_master/master.rb
 lib/palmade/puppet_master/mongrel2_puppet.rb
+lib/palmade/puppet_master/mongrel2_puppet/backend.rb
 lib/palmade/puppet_master/mongrel2_puppet/connection.rb
-lib/palmade/puppet_master/mongrel2_puppet/handler.rb
 lib/palmade/puppet_master/mongrel2_puppet/rails_adapter.rb
 lib/palmade/puppet_master/mongrel2_puppet/request.rb
 lib/palmade/puppet_master/mongrel2_puppet/response.rb
