@@ -60,6 +60,9 @@ module Palmade
     autoload :SocketHelper, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/socket_helper')
     autoload :Utils, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/utils')
 
+    # mixins
+    autoload :Mixins, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/mixins')
+
     def self.run!(options = { }, &block)
       raise "You can't run multiple masters in the same process!" unless master.nil?
       m = self.master = Palmade::PuppetMaster::Master.new(options)
