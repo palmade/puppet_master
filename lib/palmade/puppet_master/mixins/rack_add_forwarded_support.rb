@@ -7,7 +7,7 @@ module Palmade::PuppetMaster
       #
       # Rack::Request.send(:include, Palmade::PuppetMaster::Mixins::RackAddForwardedSupport)
       #
-      def port
+      def port_with_forwarded_support
         if port = host_with_port.split(/:/)[1]
           port.to_i
         elsif port = @env['HTTP_X_FORWARDED_PORT']
@@ -21,7 +21,7 @@ module Palmade::PuppetMaster
         end
       end
 
-      def scheme
+      def scheme_with_forwarded_support
         if @env['HTTPS'] == 'on'
           'https'
         elsif @env['HTTP_X_FORWARDED_SSL'] == 'on'
@@ -30,6 +30,16 @@ module Palmade::PuppetMaster
           @env['HTTP_X_FORWARDED_PROTO'].split(',')[0]
         else
           @env["rack.url_scheme"]
+        end
+      end
+
+      def self.included(base)
+        base.class_eval do
+          alias :port_without_forwarded_support :port
+          alias :port :port_with_forwarded_support
+
+          alias :scheme_without_forwarded_support :scheme
+          alias :scheme :scheme_with_forwarded_support
         end
       end
     end
