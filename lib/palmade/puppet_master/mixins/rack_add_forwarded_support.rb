@@ -1,12 +1,19 @@
 module Palmade::PuppetMaster
   module Mixins
     module RackAddForwardedSupport
+      # WARNING: This mixin has *ONLY* been tested on Rack v1.1.
+      #
       # The following methods were taken from Rack v1.3. They're
       # copied here, for convenience purposes. To use, just call this
       # in your initialization code,
       #
       # Rack::Request.send(:include, Palmade::PuppetMaster::Mixins::RackAddForwardedSupport)
       #
+
+      def ssl?
+        scheme == 'https'
+      end
+
       def port_with_forwarded_support
         if port = host_with_port.split(/:/)[1]
           port.to_i
