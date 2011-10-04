@@ -38,7 +38,6 @@ module Palmade::PuppetMaster
     def self.default_configurator_file; DEFAULT_CONFIGURATOR_FILE; end
 
     def self.commands; COMMANDS; end
-    def self.default_command; "boot"; end
 
     def initialize(argv, options = { }, &block)
       # the following lines where copied from unicorn
