@@ -217,10 +217,6 @@ module Palmade::PuppetMaster
 
       if self.class.commands.include?(@command)
         Palmade::PuppetMaster::Controller.new(pn, @argv, @command, @arguments, @config)
-      elsif @command.nil?
-        puts "Command required"
-        puts @parser
-        exit 1
       else
         abort "Unknown command: #{@command}. Use one of #{self.class.commands.join(', ')}"
       end
