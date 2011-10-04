@@ -155,10 +155,11 @@ module Palmade::PuppetMaster
 
       @sig_queue.clear
       setup_traps
-      EventMachine.run do
-        EventMachine.epoll rescue nil
-        EventMachine.kqueue rescue nil
 
+      EventMachine.epoll
+      EventMachine.kqueue
+
+      EventMachine.run do
         wakeup!
       end
     ensure
