@@ -77,8 +77,8 @@ module Palmade::PuppetMaster
       # For Rails pre Rack (2.3)
       class CgiApp
         def call(env)
-          request         = Request.new(env)
-          response        = Response.new
+          request         = Rack::Request.new(env)
+          response        = Rack::Response.new
           session_options = ActionController::CgiRequest::DEFAULT_SESSION_OPTIONS
           cgi             = CGIWrapper.new(request, response)
 
