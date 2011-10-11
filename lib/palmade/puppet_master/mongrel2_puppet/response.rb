@@ -77,7 +77,9 @@ module Palmade::PuppetMaster
     end
 
     def build_http_headers(status, headers)
-      headers = headers.map{ |k, v| HTTP_HEADER_KEY_VAL % [k,v] }.join("\r\n")
+      headers = headers.map { |k, vs|
+            vs.split("\n").map { |v| HTTP_HEADER_KEY_VAL % [k, v] }
+          }.join("\r\n")
       HTTP_HEADER % [status, StatusMessage[status.to_i], headers]
     end
 
