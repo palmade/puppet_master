@@ -21,7 +21,7 @@ module Palmade::PuppetMaster
       :idle_time => 15,
     })
 
-    autoload :RailsAdapter, File.join(MONGREL2_PUPPET_LIBS_PATH, 'rails_adapter')
+    require  File.join(MONGREL2_PUPPET_LIBS_PATH, 'rails_adapter')
     autoload :Backend, File.join(MONGREL2_PUPPET_LIBS_PATH, 'backend')
     autoload :Connection, File.join(MONGREL2_PUPPET_LIBS_PATH, 'connection')
     autoload :Request, File.join(MONGREL2_PUPPET_LIBS_PATH, 'request')
@@ -125,7 +125,7 @@ module Palmade::PuppetMaster
           load_camping_adapter
         else
           opts = @adapter_options.merge(:prefix => @options[:prefix])
-          RailsAdapter.new(opts.merge(:root => opts[:chdir]))
+          Rack::Adapter::Rails.new(opts.merge(:root => opts[:chdir]))
         end
       else
         raise ArgumentError, "Rack adapter for Mongrel2 is not specified. I'm too lazy to probe what u want to use."

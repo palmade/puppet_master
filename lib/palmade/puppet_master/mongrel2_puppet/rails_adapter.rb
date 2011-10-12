@@ -10,8 +10,8 @@ require 'cgi'
 #  prefix: Set the relative URL root.
 #
 # Based on http://fuzed.rubyforge.org/ Rails adapter
-module Palmade::PuppetMaster
-  class Mongrel2Puppet::RailsAdapter
+module Rack::Adapter
+  class Rails
     FILE_METHODS = %w(GET HEAD).freeze
 
     def initialize(options={})
@@ -129,7 +129,9 @@ module Palmade::PuppetMaster
 
               @response['Set-Cookie'] = [@response['Set-Cookie'], cookies].compact
               # See http://groups.google.com/group/rack-devel/browse_thread/thread/e8759b91a82c5a10/a8dbd4574fe97d69?#a8dbd4574fe97d69
-              if Thin.ruby_18?
+
+              # Are we running on ruby 1.8?
+              if RUBY_VERSION =~ /^1\.8/
                 @response['Set-Cookie'].flatten!
               else
                 @response['Set-Cookie'] = @response['Set-Cookie'].join("\n")
