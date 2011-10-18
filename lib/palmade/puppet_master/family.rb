@@ -51,6 +51,12 @@ module Palmade::PuppetMaster
       end
     end
 
+    def spawn_missing_workers(m)
+      @puppets.each do |k, p|
+        p.spawn_missing_workers(m)
+      end
+    end
+
     def kill_each_workers(m, signal)
       @puppets.each do |k, p|
         p.kill_each_workers(m, self, signal)

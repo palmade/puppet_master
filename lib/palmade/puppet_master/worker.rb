@@ -19,7 +19,7 @@ module Palmade::PuppetMaster
       @logger = @master.logger
 
       @nr = nr
-      @master_pid = m.master_pid
+      @master_pid = m.pid
       @m = 0
       @stopped = false
     end
@@ -93,12 +93,6 @@ module Palmade::PuppetMaster
       @tmp.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
       @puppet.after_fork(self)
-    end
-
-    def init_self_pipe!
-      #SELF_PIPE.each { |io| io.close rescue nil }
-      #SELF_PIPE.replace(IO.pipe)
-      #SELF_PIPE.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
     end
   end
 end

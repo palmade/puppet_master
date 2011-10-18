@@ -8,13 +8,15 @@ module Palmade::PuppetMaster
       :proc_argv => ARGV.clone
     }
 
+    SELF_PIPE = []
+
     QUEUE_SIGS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
 
     attr_accessor :family
     attr_accessor :logger
     attr_accessor :timeout
 
-    attr_reader :master_pid
+    attr_reader :pid
     attr_reader :services
     attr_reader :reserved_ports
     attr_reader :forks
@@ -44,11 +46,18 @@ module Palmade::PuppetMaster
       @reserved_ports = ::Set.new
       @listeners = { }
 
-      @unjoin = nil
       @forks = [ ]
 
       @reset_application_callbacks = [ ]
       @shutdown_application_callbacks = [ ]
+
+      if logger.nil?
+        if Palmade::PuppetMaster.logger.nil?
+          @logger = Logger.new($stderr)
+        else
+          @logger = Palmade::PuppetMaster.logger
+        end
+      end
     end
 
     def fork(handler, priority = false, &block)
@@ -108,41 +117,34 @@ module Palmade::PuppetMaster
     end
 
     def start
-      if logger.nil?
-        if Palmade::PuppetMaster.logger.nil?
-          @logger = Logger.new($stderr)
-        else
-          @logger = Palmade::PuppetMaster.logger
-        end
-      end
+      create_listeners!
+
+      init_self_pipe!
+
       verify_if_were_ready!
+
+      setup_traps
 
       if GC.respond_to?(:copy_on_write_friendly=)
         logger.warn "Turning on copy-on-write friendly (REE patches)"
         GC.copy_on_write_friendly = true
       end
 
-      @master_pid = $$
-      logger.warn "master started: #{@master_pid}"
+      @pid = $$
+      logger.warn "master started: #{@pid}"
       if @proc_tag.nil?
         set_proc_name "master"
       else
         set_proc_name "master[#{@proc_tag}]"
       end
 
-      # refresh gem list
       if defined?(Gem) && Gem.respond_to?(:refresh)
         Gem.refresh
       end
 
-      # let's boot our services
       boot_services
 
-      # let's build the family of puppets
       family.build!(self)
-
-      # let's create our listeners
-      create_listeners!
 
       self
     end
@@ -154,58 +156,37 @@ module Palmade::PuppetMaster
       return if @stopped
 
       @sig_queue.clear
-      setup_traps
 
-      EventMachine.epoll if @options[:epoll]
-
-      EventMachine.run do
-        wakeup!
-      end
-    ensure
-      clear_traps(true)
-      trap(:CHLD, 'DEFAULT')
-
-      if @stopped == :UNJOIN && !@unjoin.nil?
-        if @unjoin.is_a?(Palmade::PuppetMaster::Worker)
-          logger.warn "joining #{@unjoin.proc_tag} (#{@unjoin.class.name})"
-        else
-          logger.warn "joining #{@unjoin.class.name}"
-        end
-
-        begin
-          if @unjoin.respond_to?(:work)
-            @unjoin.work
-          elsif @unjoin.respond_to?(:call)
-            @unjoin.call
-          else
-            raise "Unsupported unjoin handler passed, got: #{@unjoin.class.name}"
-          end
-        rescue Exception => e
-          logger.error "Unhandled exception when trying to join handler #{e.inspect}."
-          logger.error e.backtrace.join("\n")
-        end
-
-        close_listeners!
-
-        @unjoin = nil
-      else
-        logger.warn "shutting down..."
-
-        # probably, we got an exception, that unravled our event machine
-        if @stopped.nil?
-          logger.error "woops!, we shouldn't be here, unless explicitly stopped!"
-        end
-
-        stop!(@stopped)
-      end
+      do_some_work
     end
 
     def unjoin(handler)
-      @unjoin = handler
       @stopped = :UNJOIN
 
-      # let's unjoin as soon as possible!
-      EventMachine.stop_event_loop if EventMachine.reactor_running?
+      clear_traps(false)
+      trap(:CHLD, 'DEFAULT')
+      @sig_queue.clear
+
+      if handler.is_a?(Palmade::PuppetMaster::Worker)
+        logger.warn "joining #{handler.proc_tag} (#{handler.class.name})"
+      else
+        logger.warn "joining #{handler.class.name}"
+      end
+
+      begin
+        if handler.respond_to?(:work)
+          handler.work
+        elsif handler.respond_to?(:call)
+          handler.call
+        else
+          raise "Unsupported unjoin handler passed, got: #{handler.class.name}"
+        end
+      rescue Exception => e
+        logger.error "Unhandled exception when trying to join handler #{e.inspect}."
+        logger.error e.backtrace.join("\n")
+      end
+
+      close_listeners!
     end
 
     def set_proc_name(tag)
@@ -333,6 +314,8 @@ module Palmade::PuppetMaster
     end
 
     def stop!(graceful = true)
+      logger.warn 'Shutting down.'
+
       case graceful
       when true
         @stopped = :QUIT
@@ -344,18 +327,14 @@ module Palmade::PuppetMaster
         @stopped = :QUIT
       end
 
-      if EventMachine.reactor_running?
-        EventMachine.stop_event_loop
-      else
-        # now, let's kill all workers
-        kill_all_workers(@stopped)
+      # now, let's kill all workers
+      kill_all_workers(@stopped)
 
-        # now, let's kill all our services
-        kill_all_services(@stopped)
+      # now, let's kill all our services
+      kill_all_services(@stopped)
 
-        # close listeners, if we have any?
-        close_listeners!
-      end
+      # close listeners, if we have any?
+      close_listeners!
     end
 
     def kill_all_services(signal)
@@ -407,8 +386,6 @@ module Palmade::PuppetMaster
     end
 
     def do_some_work
-      return if @stopped
-
       begin
         reap_dead_children!
 
@@ -417,85 +394,41 @@ module Palmade::PuppetMaster
           family.murder_lazy_workers!(self)
           maintain_services!
           family.maintain_workers!(self) if @respawn
+          perform_forks unless @stopped
+          take_a_nap!
         when :QUIT, :INT # graceful shutdown
           stop!
+          break
         when :TERM # immediate shutdown
           stop!(false)
-        when :USR1 # TODO: rotate logs
-          #logger.info "master reopening logs..."
-          #Unicorn::Util.reopen_logs
-          #logger.info "master done reopening logs"
-          #kill_each_worker(:USR1)
-        when :USR2 # TODO: exec binary, stay alive in case something went wrong
-          # reexec
+          break
         when :WINCH # TODO: kills all workers, but keep the master
           if Process.ppid == 1 || Process.getpgrp != $$
             @respawn = false
-            #logger.info "gracefully stopping all workers"
             family.kill_each_workers self, :QUIT
             kill_all_services :QUIT
-          else
-            #logger.info "SIGWINCH ignored because we're not daemonized"
           end
-        when :TTIN # TODO:
-          # self.worker_processes += 1
-        when :TTOU # TODO:
-          # self.worker_processes -= 1 if self.worker_processes > 0
         when :HUP
           @respawn = true
-          #if config.config_file
-          #  load_config!
-          #  redo # immediate reaping since we may have QUIT workers
-          #else # exec binary and exit if there's no config file
-          #  logger.info "config_file not present, reexecuting binary"
-          #  reexec
-          #  break
-          #end
         end
-      #rescue Errno::EINTR
-        #retry
       rescue Object => e
         logger.error "Unhandled master loop exception #{e.inspect}."
         logger.error e.backtrace.join("\n")
-      end
-
-      unless @stopped
-        unless @sig_queue.empty?
-          wakeup!
-        else
-          nforks = perform_forks
-
-          # forked childs return a nil nforks
-          unless nforks.nil?
-            take_a_nap!
-          end
-        end
-      end
+      end while true
     end
 
-    def cancel_nap!
-      unless @nap_timer.nil?
-        EventMachine.cancel_timer(@nap_timer)
-        @nap_timer = nil
-      end
-    end
-
-    def take_a_nap!
-      @nap_timer = EventMachine.add_timer(@nap_time) { @nap_timer = nil; wakeup! }
+    def take_a_nap!(sec = @nap_time)
+      IO.select([ SELF_PIPE[0] ], nil, nil, sec) or return
+      SELF_PIPE[0].read_nonblock(11)
     end
 
     def wakeup!
-      if EventMachine.reactor_running?
-        cancel_nap!
-        EventMachine.next_tick { do_some_work }
-      else
-        do_some_work
-      end
+      SELF_PIPE[1].write_nonblock('.')
     end
 
     def setup_traps
       QUEUE_SIGS.each { |sig| trap_deferred(sig) }
-      trap(:CHLD) { |sig_nr| wakeup! }
+      trap(:CHLD)     { wakeup! }
     end
 
     def clear_traps(default = false)
@@ -518,21 +451,28 @@ module Palmade::PuppetMaster
 
     def reap_dead_children!
       begin
-        loop do
           # check if we have any child process that died
           wpid, status = Process.waitpid2(-1, Process::WNOHANG)
           wpid or break
 
           family.reap!(self, wpid, status)
           services.each_value { |s| s.reap!(self, wpid, status) }
-        end
       rescue Errno::ECHILD
-      end
+        break
+      end while true
     end
 
     def verify_if_were_ready!
       raise "Please specify the family of puppets to run" if @family.nil?
       raise "Must specify a main puppet to run" if @family[nil].nil?
+    end
+
+    private
+
+    def init_self_pipe!
+      SELF_PIPE.each { |io| io.close rescue nil }
+      SELF_PIPE.replace(IO.pipe)
+      SELF_PIPE.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
     end
   end
 end
