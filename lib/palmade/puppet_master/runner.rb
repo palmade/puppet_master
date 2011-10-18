@@ -14,7 +14,8 @@ module Palmade::PuppetMaster
       :daemonize => nil,
       :master_options => { },
       :tail => true,
-      :configurator => nil
+      :configurator => nil,
+      :epoll => false
     }
 
     DEFAULT_CONFIG_FILE = "config/puppet_master.yml".freeze

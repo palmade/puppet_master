@@ -99,6 +99,7 @@ module Palmade::PuppetMaster
 
       master_options[:proc_name] = @proc_name
       master_options[:proc_argv] = @proc_argv
+      master_options[:epoll]     = @config[:epoll]
 
       Palmade::PuppetMaster.run!(master_options) do |m|
         @configurator = nil

@@ -156,8 +156,7 @@ module Palmade::PuppetMaster
       @sig_queue.clear
       setup_traps
 
-      EventMachine.epoll
-      EventMachine.kqueue
+      EventMachine.epoll if @options[:epoll]
 
       EventMachine.run do
         wakeup!
