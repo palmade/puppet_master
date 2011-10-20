@@ -27,8 +27,8 @@ module Palmade::PuppetMaster
     autoload :Request, File.join(MONGREL2_PUPPET_LIBS_PATH, 'request')
     autoload :Response, File.join(MONGREL2_PUPPET_LIBS_PATH, 'response')
 
-    def initialize(options = { }, &block)
-      super(DEFAULT_OPTIONS.merge(options), &block)
+    def initialize(master, family, options = { }, &block)
+      super(master, family, DEFAULT_OPTIONS.merge(options), &block)
 
       @adapter = @options[:adapter]
       @adapter_options = @options[:adapter_options]

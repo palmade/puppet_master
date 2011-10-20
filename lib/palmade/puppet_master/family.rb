@@ -1,5 +1,4 @@
 module Palmade::PuppetMaster
-  # a set of different puppets
   class Family
     DEFAULT_OPTIONS = { }
 
@@ -8,9 +7,10 @@ module Palmade::PuppetMaster
     attr_reader :puppets
     attr_reader :logger
 
-    def initialize(options = { })
+    def initialize(master, options = { })
       @options = DEFAULT_OPTIONS.merge(options)
       @puppets = { }
+      @master  = master
     end
 
     def main_puppet
@@ -25,41 +25,41 @@ module Palmade::PuppetMaster
       puppets[k] = v
     end
 
-    def build!(m)
-      unless m.logger.nil?
-        @logger = m.logger
+    def build!
+      unless @master.logger.nil?
+        @logger = @master.logger
       end
 
       @puppets.each do |k, p|
-        p.build!(m, self)
+        p.build!
       end
 
       @puppets.each do |k, p|
-        p.post_build(m, self)
-      end
-    end
-
-    def murder_lazy_workers!(m)
-      @puppets.each do |k, p|
-        p.murder_lazy_workers!(m, self)
+        p.post_build
       end
     end
 
-    def maintain_workers!(m)
+    def murder_lazy_workers!
       @puppets.each do |k, p|
-        p.maintain_workers!(m, self)
+        p.murder_lazy_workers!
       end
     end
 
-    def spawn_missing_workers(m)
+    def maintain_workers!
       @puppets.each do |k, p|
-        p.spawn_missing_workers(m)
+        p.maintain_workers!
       end
     end
 
-    def kill_each_workers(m, signal)
+    def spawn_missing_workers
       @puppets.each do |k, p|
-        p.kill_each_workers(m, self, signal)
+        p.spawn_missing_workers
+      end
+    end
+
+    def kill_each_workers(signal)
+      @puppets.each do |k, p|
+        p.kill_each_workers(signal)
       end
     end
 
@@ -71,19 +71,19 @@ module Palmade::PuppetMaster
       count
     end
 
-    def all_workers_dead?(m)
+    def all_workers_dead?
       worker_count == 0
     end
 
-    def resign!(m, worker)
+    def resign!(worker)
       @puppets.each do |k, p|
-        p.resign!(m, self, worker)
+        p.resign!(worker)
       end
     end
 
-    def reap!(m, wpid, status)
+    def reap!(wpid, status)
       @puppets.each do |k, p|
-        p.reap!(m, self, wpid, status)
+        p.reap!(wpid, status)
       end
     end
 

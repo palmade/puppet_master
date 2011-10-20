@@ -113,7 +113,7 @@ module Palmade::PuppetMaster
     end
 
     def single_family!(options = { }, &block)
-      @family = Palmade::PuppetMaster::Family.new(options)
+      @family = Palmade::PuppetMaster::Family.new(self, options)
     end
 
     def start
@@ -144,7 +144,7 @@ module Palmade::PuppetMaster
 
       boot_services
 
-      family.build!(self)
+      family.build!
 
       self
     end
@@ -229,7 +229,7 @@ module Palmade::PuppetMaster
       else
         self.set_proc_name(new_proc_name)
       end
-      family.resign!(self, worker)
+      family.resign!(worker)
     end
 
     # a custom method, that calls a defined block
@@ -371,17 +371,17 @@ module Palmade::PuppetMaster
 
     def kill_all_workers(signal)
       step = 0.2
-      family.kill_each_workers self, signal
+      family.kill_each_workers(signal)
       sleep(step)
       reap_dead_children!
 
       # let's wait until all workers are dead, or we've timed out!
       timeleft = @timeout
-      until family.all_workers_dead?(self)
+      until family.all_workers_dead?
         sleep(step)
         reap_dead_children!
         (timeleft -= step) > 0 and next
-        family.kill_each_workers self, :KILL
+        family.kill_each_workers(:KILL)
       end
     end
 
@@ -391,9 +391,9 @@ module Palmade::PuppetMaster
 
         case @sig_queue.shift
         when nil
-          family.murder_lazy_workers!(self)
+          family.murder_lazy_workers!
           maintain_services!
-          family.maintain_workers!(self) if @respawn
+          family.maintain_workers! if @respawn
           perform_forks unless @stopped
           take_a_nap!
         when :QUIT, :INT # graceful shutdown
@@ -405,7 +405,7 @@ module Palmade::PuppetMaster
         when :WINCH # TODO: kills all workers, but keep the master
           if Process.ppid == 1 || Process.getpgrp != $$
             @respawn = false
-            family.kill_each_workers self, :QUIT
+            family.kill_each_workers(:QUIT)
             kill_all_services :QUIT
           end
         when :HUP
@@ -455,8 +455,8 @@ module Palmade::PuppetMaster
           wpid, status = Process.waitpid2(-1, Process::WNOHANG)
           wpid or break
 
-          family.reap!(self, wpid, status)
-          services.each_value { |s| s.reap!(self, wpid, status) }
+          family.reap!(wpid, status)
+          services.each_value { |s| s.reap!(wpid, status) }
       rescue Errno::ECHILD
         break
       end while true

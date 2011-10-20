@@ -58,7 +58,7 @@ module Palmade::PuppetMaster
       @alive
     end
 
-    def reap!(master, wpid, status)
+    def reap!(wpid, status)
       # we just died, perhaps, we should restart?
       if wpid == @service_pid
         logger.warn "reaped #{status.inspect} service=#{@service_name}"

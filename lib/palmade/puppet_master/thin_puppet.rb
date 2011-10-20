@@ -28,8 +28,8 @@ module Palmade::PuppetMaster
     attr_accessor :max_total_connections
     attr_accessor :max_current_connections
 
-    def initialize(options = { }, &block)
-      super(DEFAULT_OPTIONS.merge(options), &block)
+    def initialize(master, family, options = { }, &block)
+      super(master, family, DEFAULT_OPTIONS.merge(options), &block)
 
       @thin = nil
 
@@ -56,8 +56,8 @@ module Palmade::PuppetMaster
       @max_persistent_connections = @options[:max_persistent_connections]
     end
 
-    def build!(m, fam)
-      super(m, fam)
+    def build!
+      super
 
       Palmade::PuppetMaster.require_thin
       boot_thin!
@@ -65,14 +65,13 @@ module Palmade::PuppetMaster
 
     def after_fork(w)
       super(w)
-      master = w.master
 
       # let's set the sockets with the proper settings for
       # attaching as acceptors to EventMachine
-      if master.listeners[@listen_key].nil? || master.listeners[@listen_key].empty?
+      if @master.listeners[@listen_key].nil? || @master.listeners[@listen_key].empty?
         raise ArgumentError, "No configured #{@listen_key || 'default'} listeners from master"
       else
-        sockets = master.listeners[@listen_key]
+        sockets = @master.listeners[@listen_key]
       end
 
       # * FD_CLOEXEC <-- this is done on the worker class (init method)

@@ -13,7 +13,9 @@ module Palmade::PuppetMaster
     attr_reader :proc_tag
     attr_reader :master_logger
 
-    def initialize(options = { }, &block)
+    def initialize(master, family, options = { }, &block)
+      @master = master
+      @family = family
       @options = DEFAULT_OPTIONS.merge(options)
 
       @nap_time = @options[:nap_time]
@@ -27,18 +29,18 @@ module Palmade::PuppetMaster
       @workers = { }
     end
 
-    def build!(m, fam)
-      unless m.logger.nil?
-        @master_logger = m.logger
+    def build!
+      unless @master.logger.nil?
+        @master_logger = @master.logger
       end
       # do nothing, i think this should be inherited!
     end
 
-    def post_build(m, fam)
+    def post_build
       # do nothing
     end
 
-    def murder_lazy_workers!(m, fam)
+    def murder_lazy_workers!
       diff = stat = nil
       @workers.dup.each_pair do |wpid, worker|
         stat = begin
@@ -49,23 +51,23 @@ module Palmade::PuppetMaster
           next
         end
         stat.mode == 0100000 and next
-        (diff = (Time.now - stat.ctime)) <= m.timeout and next
+        (diff = (Time.now - stat.ctime)) <= @master.timeout and next
 
         master_logger.error "worker=#{worker.nr} PID:#{wpid} timeout " +
-          "(#{diff}s > #{m.timeout}s), killing"
+          "(#{diff}s > #{@master.timeout}s), killing"
 
         kill_worker(:KILL, wpid) # take no prisoners for timeout violations
       end
     end
 
-    def kill_each_workers(m, fam, signal)
+    def kill_each_workers(signal)
       @workers.keys.each { |wpid| kill_worker(signal, wpid) }
     end
 
-    def maintain_workers!(m, fam)
+    def maintain_workers!
       # check if we miss some workers
       (off = @workers.size - @count) == 0 and return
-      off < 0 and return spawn_missing_workers(m)
+      off < 0 and return spawn_missing_workers
 
       # check if we have more workers as needed
       @workers.dup.each_pair do |wpid, w|
@@ -75,19 +77,19 @@ module Palmade::PuppetMaster
       self
     end
 
-    def spawn_missing_workers(m)
+    def spawn_missing_workers
       (0...@count).each do |worker_nr|
         # if a worker exist already, just skip it!
         @workers.values.include?(worker_nr) && next
 
-        worker = Palmade::PuppetMaster::Worker.new(m, self, worker_nr)
-        m.fork(worker) do |pid|
+        worker = Palmade::PuppetMaster::Worker.new(@master, self, worker_nr)
+        @master.fork(worker) do |pid|
           @workers[pid] = worker
         end
       end
     end
 
-    def resign!(m, fam, worker)
+    def resign!(worker)
       @workers.values.each { |w| w.close }
       @workers.clear
     end
@@ -151,7 +153,7 @@ module Palmade::PuppetMaster
       worker.stop!
     end
 
-    def reap!(m, fam, wpid, status)
+    def reap!(wpid, status)
       if @workers.include?(wpid)
         worker = @workers.delete(wpid) and worker.close
         master_logger.warn "reaped #{status.inspect} worker=#{worker.proc_tag rescue 'unknown'}"

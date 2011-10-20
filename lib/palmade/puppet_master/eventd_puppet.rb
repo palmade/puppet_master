@@ -2,10 +2,6 @@ module Palmade::PuppetMaster
   class EventdPuppet < Palmade::PuppetMaster::Puppet
     DEFAULT_OPTIONS = Palmade::PuppetMaster::Puppet::DEFAULT_OPTIONS.merge({ })
 
-    def initialize(options = { }, &block)
-      super(options, &block)
-    end
-
     def work_loop(worker, ret = nil, &block)
       master_logger.warn "eventd worker #{worker.proc_tag} started: #{$$}"
 
