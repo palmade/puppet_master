@@ -92,9 +92,14 @@ module Palmade::PuppetMaster
       end
 
       def idle_time(w)
-        @idle_timer = nil
-        notify_alive!(w)
-        @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
+        if !w.ok? and EM.reactor_running?
+          stop_work_loop(w)
+        else
+          @idle_timer = nil
+          notify_alive!(w)
+
+          @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
+        end
       end
 
       def notify_alive!(w)

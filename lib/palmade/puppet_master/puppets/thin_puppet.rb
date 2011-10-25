@@ -176,13 +176,16 @@ module Palmade::PuppetMaster
       protected
 
       def idle_time(w)
-        @idle_timer = nil
-        notify_alive!(w)
+        if !w.ok? and EM.reactor_running?
+          stop_work_loop(w)
+        else
+          @idle_timer = nil
+          notify_alive!(w)
 
-        # only, if we're not doing anything at all!
-        @idle_process.call(w) if !@idle_process.nil? && @thin.backend.empty?
+          @idle_process.call(w) if !@idle_process.nil? && @thin.backend.empty?
 
-        @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
+          @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(w) }
+        end
       end
 
       def notify_alive!(w)
