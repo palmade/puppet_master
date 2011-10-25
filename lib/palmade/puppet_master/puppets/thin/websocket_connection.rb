@@ -6,7 +6,7 @@
 # http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-76
 
 module Palmade::PuppetMaster
-  module ThinWebsocketConnection
+  module Puppets::Thin::WebsocketConnection
     # initialize web socket connection state to :handshake. this is
     # the default state, irregardless if this is a websocket
     # connection or not.

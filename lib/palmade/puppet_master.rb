@@ -3,6 +3,7 @@ PUPPET_MASTER_ROOT_DIR = File.join(PUPPET_MASTER_LIB_DIR, '../..') unless define
 
 require 'rubygems'
 
+require 'rbtrace'
 require 'fcntl'
 require 'tmpdir'
 require 'socket'
@@ -27,19 +28,9 @@ module Palmade
 
     # main classes
     autoload :Master, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/master')
-    autoload :Puppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/puppet')
+    autoload :Puppets, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/puppets')
     autoload :Family, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/family')
     autoload :Worker, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/worker')
-
-    # types of puppets
-    autoload :EventdPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/eventd_puppet')
-
-    autoload :ThinPuppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_puppet')
-    autoload :ThinBackend, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_backend')
-    autoload :ThinConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_connection')
-    autoload :ThinWebsocketConnection, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/thin_websocket_connection')
-
-    autoload :Mongrel2Puppet, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/mongrel2_puppet')
 
     # auxilliary services
     autoload :Service, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service')

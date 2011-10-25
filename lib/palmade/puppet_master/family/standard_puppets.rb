@@ -34,13 +34,13 @@ module Palmade
 
           case type
           when :eventd
-            @puppets[k] = Palmade::PuppetMaster::EventdPuppet.new(@master, self, options, &block)
+            @puppets[k] = Palmade::PuppetMaster::Puppets::EventdPuppet.new(@master, self, options, &block)
           when :loop
-            @puppets[k] = Palmade::PuppetMaster::Puppet.new(@master, self, options, &block)
+            @puppets[k] = Palmade::PuppetMaster::Puppets::Base.new(@master, self, options, &block)
           when :thin
-            @puppets[k] = Palmade::PuppetMaster::ThinPuppet.new(@master, self, options, &block)
+            @puppets[k] = Palmade::PuppetMaster::Puppets::ThinPuppet.new(@master, self, options, &block)
           when :mongrel2
-            @puppets[k] = Palmade::PuppetMaster::Mongrel2Puppet.new(@master, self, options, &block)
+            @puppets[k] = Palmade::PuppetMaster::Puppets::Mongrel2Puppet.new(@master, self, options, &block)
           else
             raise "Unknown puppet type: #{type}"
           end
