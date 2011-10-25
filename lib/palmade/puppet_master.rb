@@ -3,7 +3,6 @@ PUPPET_MASTER_ROOT_DIR = File.join(PUPPET_MASTER_LIB_DIR, '../..') unless define
 
 require 'rubygems'
 
-require 'rbtrace'
 require 'fcntl'
 require 'tmpdir'
 require 'socket'
