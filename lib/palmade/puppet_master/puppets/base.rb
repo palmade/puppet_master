@@ -39,7 +39,9 @@ module Palmade::PuppetMaster
           @workers = { }
         end
 
-        def build!
+        def build!(master = nil, family = nil)
+          deprecation_warning_ancestor(master, family) if !master or !family
+
           unless @master.logger.nil?
             @master_logger = @master.logger
           end
@@ -176,6 +178,13 @@ module Palmade::PuppetMaster
           rescue Errno::ESRCH
             worker = @workers.delete(wpid) and worker.close
           end
+        end
+
+        private
+        def deprecation_warning_ancestor(master, family)
+          warn "[DEPRECATION] `master` and `family` should be passed on initialization"
+          @master = master
+          @family = family
         end
     end
   end
