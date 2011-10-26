@@ -22,6 +22,8 @@ module Palmade::PuppetMaster
     end
 
     def []=(k, v)
+      v.master ||= @master
+      v.family ||= self
       puppets[k] = v
     end
 

@@ -13,9 +13,18 @@ module Palmade::PuppetMaster
         attr_reader :workers
         attr_reader :proc_tag
         attr_reader :master_logger
+        attr_accessor :master
+        attr_accessor :family
 
-        def initialize(master, family, options = { }, &block)
-          @master = master
+        def initialize(master = nil, family = nil, options = { }, &block)
+          if master.is_a? Palmade::PuppetMaster::Master
+            @master = master
+          else
+            warn "[DEPRECATION] `master` should be passed on puppet's initialization."
+            @master = nil
+            options = master
+          end
+
           @family = family
           @options = DEFAULT_OPTIONS.merge(options)
 

@@ -24,7 +24,7 @@ module Palmade::PuppetMaster
       })
 
 
-      def initialize(master, family, options = { }, &block)
+      def initialize(master = nil, family = nil, options = { }, &block)
         super(master, family, DEFAULT_OPTIONS.merge(options), &block)
 
         @adapter = @options[:adapter]

@@ -29,7 +29,7 @@ module Palmade::PuppetMaster
       attr_accessor :max_total_connections
       attr_accessor :max_current_connections
 
-      def initialize(master, family, options = { }, &block)
+      def initialize(master = nil, family = nil, options = { }, &block)
         super(master, family, DEFAULT_OPTIONS.merge(options), &block)
 
         @thin = nil
