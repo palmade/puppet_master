@@ -69,6 +69,7 @@ module Palmade::PuppetMaster
     end
 
     def perform_forks
+      handler = nil
       @forks.each do |f|
         handler = f[0]
         block = f[1]
@@ -76,16 +77,13 @@ module Palmade::PuppetMaster
         fid = handler.fork
         if fid.nil?
           $stdin.sync = $stdout.sync = $stderr.sync = true
-
-          # we're in the child process
-          unjoin(handler)
-          return fid
+          break
         else
           block.call(fid)
+          handler = nil
         end
       end unless @forks.empty?
-
-      @forks.size
+      handler
     ensure
       @forks.clear
     end
@@ -157,7 +155,9 @@ module Palmade::PuppetMaster
 
       @sig_queue.clear
 
-      do_some_work
+      if handler = do_some_work
+        unjoin(handler)
+      end
     end
 
     def unjoin(handler)
@@ -386,6 +386,8 @@ module Palmade::PuppetMaster
     end
 
     def do_some_work
+      handler = nil
+
       begin
         reap_dead_children!
 
@@ -394,8 +396,6 @@ module Palmade::PuppetMaster
           family.murder_lazy_workers!
           maintain_services!
           family.maintain_workers! if @respawn
-          perform_forks unless @stopped
-          take_a_nap!
         when :QUIT, :INT # graceful shutdown
           stop!
           break
@@ -411,10 +411,18 @@ module Palmade::PuppetMaster
         when :HUP
           @respawn = true
         end
-      rescue Object => e
+
+        unless @stopped
+          handler = perform_forks
+
+          break if handler # worker process
+          take_a_nap! if @sig_queue.empty?
+        end
+      rescue StandardError => e
         logger.error "Unhandled master loop exception #{e.inspect}."
         logger.error e.backtrace.join("\n")
       end while true
+      handler
     end
 
     def take_a_nap!(sec = @nap_time)
