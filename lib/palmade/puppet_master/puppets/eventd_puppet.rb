@@ -1,8 +1,6 @@
 module Palmade::PuppetMaster
   module Puppets
     class EventdPuppet < Base
-      DEFAULT_OPTIONS = Palmade::PuppetMaster::Puppet::DEFAULT_OPTIONS.merge({ })
-
       def work_loop(worker, ret = nil, &block)
         master_logger.warn "eventd worker #{worker.proc_tag} started: #{$$}"
 
