@@ -40,7 +40,7 @@ module Palmade::PuppetMaster
         end
 
         def build!(master = nil, family = nil)
-          deprecation_warning_ancestor(master, family) if !master or !family
+          deprecation_warning_ancestor(master, family) if master or family
 
           unless @master.logger.nil?
             @master_logger = @master.logger
