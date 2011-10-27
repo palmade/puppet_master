@@ -27,13 +27,18 @@ module Palmade::PuppetMaster
       puppets[k] = v
     end
 
-    def build!
+    def build!(master = @master, family = self)
       unless @master.logger.nil?
         @logger = @master.logger
       end
 
       @puppets.each do |k, p|
-        p.build!
+        if p.method(:build!).arity == 2
+          warn "[DEPRECATION] `master` and `family` should be passed on initialization"
+          p.build!(master, family)
+        else
+          p.build!
+        end
       end
 
       @puppets.each do |k, p|
