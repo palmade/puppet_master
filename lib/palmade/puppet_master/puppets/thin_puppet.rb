@@ -103,9 +103,10 @@ module Palmade::PuppetMaster
                            [ :QUIT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
                            [ :TERM, :KILL ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
 
+                           EventMachine.epoll
+                           EventMachine.kqueue
+
                            EventMachine.run do
-                             EventMachine.epoll rescue nil
-                             EventMachine.kqueue rescue nil
 
                              # do some work
                              if block_given?

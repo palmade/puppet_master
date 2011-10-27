@@ -40,10 +40,10 @@ module Palmade::PuppetMaster
 
         @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
 
-        EventMachine.run do
-          EventMachine.epoll rescue nil
-          EventMachine.kqueue rescue nil
+        EventMachine.epoll
+        EventMachine.kqueue
 
+        EventMachine.run do
           @backend.start
 
           @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
