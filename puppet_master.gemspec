@@ -14,5 +14,7 @@ Gem::Specification.new do |s|
   s.require_paths    = ['lib']
   s.extra_rdoc_files = ['README']
   s.rdoc_options     = ['--line-numbers', '--inline-source', '--title', 'puppet_master', '--main', 'README']
+
+  s.add_development_dependency 'rspec'
 end
 
