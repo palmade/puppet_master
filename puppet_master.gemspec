@@ -16,5 +16,6 @@ Gem::Specification.new do |s|
   s.rdoc_options     = ['--line-numbers', '--inline-source', '--title', 'puppet_master', '--main', 'README']
 
   s.add_development_dependency 'rspec'
+  s.add_development_dependency 'simplecov'
 end
 
