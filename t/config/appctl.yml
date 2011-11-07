@@ -1,0 +1,14 @@
+listen:
+  - 0.0.0.0:20101
+
+tail: false
+
+environment: development
+
+tag: development
+
+pid_file: tmp/pids/appctl.pid
+
+log_file: log/appctl.log
+
+epoll: true
