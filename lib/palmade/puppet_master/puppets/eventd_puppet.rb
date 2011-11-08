@@ -37,12 +37,16 @@ module Palmade::PuppetMaster
       protected
 
       def work_work(w)
-        return unless w.ok?
-        w.alive!
-        perform_work(w)
-        if w.ok?
+        if !w.ok?
+          stop_work_loop(w)
+        else
           w.alive!
-          EventMachine.add_timer(@options[:nap_time]) { work_work(w) }
+          perform_work(w)
+
+          if w.ok?
+            w.alive!
+            EventMachine.add_timer(@options[:nap_time]) { work_work(w) }
+          end
         end
       end
 
