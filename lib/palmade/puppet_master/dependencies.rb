@@ -30,15 +30,9 @@ module Palmade::PuppetMaster
         end
       end
 
-      def require_json_parser
-        begin
-          require 'yajl'
-        rescue LoadError
-          begin
-            require 'json'
-          rescue LoadError
-            raise "You need either the yajl-ruby or json gem."
-          end
+      def require_yajl
+        unless defined?(::Yajl)
+            require 'yajl'
         end
       end
     end

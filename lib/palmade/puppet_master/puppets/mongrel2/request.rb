@@ -13,7 +13,7 @@ module Palmade::PuppetMaster
           uuid, conn_id, path, rest = msg.split(' ', 4)
           headers, rest = parse_netstring(rest)
           body, _ = parse_netstring(rest)
-          headers = Palmade::PuppetMaster::Puppets::Mongrel2Puppet::JSON.parse(headers)
+          headers = Yajl::Parser.parse(headers)
           new(uuid, conn_id, path, headers, body)
         end
 
@@ -29,7 +29,7 @@ module Palmade::PuppetMaster
 
       def initialize(uuid, conn_id, path, headers, body)
         @uuid, @conn_id, @path, @headers, @body = uuid, conn_id, path, headers, body
-        @data = headers['METHOD'] == 'JSON' ? Palmade::PuppetMaster::Puppets::Mongrel2Puppet::JSON.parse(body) : {}
+        @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
         initialize_env
       end
 

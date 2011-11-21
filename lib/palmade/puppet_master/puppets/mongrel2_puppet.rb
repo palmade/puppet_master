@@ -3,7 +3,6 @@ module Palmade::PuppetMaster
     class Mongrel2Puppet < Base
       include Palmade::PuppetMaster::Mixins::FrameworkAdapters
 
-      JSON = Object.const_defined?('Yajl') ? ::Yajl::Parser : ::JSON
       DEFAULT_OPTIONS = Palmade::PuppetMaster::Puppets::Base::DEFAULT_OPTIONS.merge({
         :idle_time => 15,
       })
@@ -19,7 +18,7 @@ module Palmade::PuppetMaster
       def build!
         super
 
-        Palmade::PuppetMaster::Dependencies.require_json_parser
+        Palmade::PuppetMaster::Dependencies.require_yajl
         Palmade::PuppetMaster::Dependencies.require_rack
         Palmade::PuppetMaster::Dependencies.require_zeromq
       end
