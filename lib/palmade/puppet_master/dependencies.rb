@@ -23,6 +23,24 @@ module Palmade::PuppetMaster
           require 'redis'
         end
       end
+
+      def require_zeromq
+        unless defined?(::EM::ZeroMQ)
+          require 'em-zeromq'
+        end
+      end
+
+      def require_json_parser
+        begin
+          require 'yajl'
+        rescue LoadError
+          begin
+            require 'json'
+          rescue LoadError
+            raise "You need either the yajl-ruby or json gem."
+          end
+        end
+      end
     end
   end
 end

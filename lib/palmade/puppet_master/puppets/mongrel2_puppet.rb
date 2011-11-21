@@ -1,16 +1,3 @@
-require 'rack'
-require 'em-zeromq'
-
-begin
-  require 'yajl'
-rescue LoadError
-  begin
-    require 'json'
-  rescue LoadError
-    raise "You need either the yajl-ruby or json gems present in order to parse JSON!"
-  end
-end
-
 module Palmade::PuppetMaster
   module Puppets
     class Mongrel2Puppet < Base
@@ -27,6 +14,14 @@ module Palmade::PuppetMaster
 
         @adapter = @options[:adapter]
         @adapter_options = @options[:adapter_options]
+      end
+
+      def build!
+        super
+
+        Palmade::PuppetMaster::Dependencies.require_json_parser
+        Palmade::PuppetMaster::Dependencies.require_rack
+        Palmade::PuppetMaster::Dependencies.require_zeromq
       end
 
       def work_loop(worker, ret = nil, &block)

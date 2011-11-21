@@ -1,5 +1,3 @@
-require 'ffi-rzmq'
-
 module Palmade::PuppetMaster
   module Puppets::Mongrel2
     class Backend
