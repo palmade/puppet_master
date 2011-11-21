@@ -44,6 +44,7 @@ module Palmade
     # utilities and misc
     autoload :SocketHelper, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/socket_helper')
     autoload :Utils, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/utils')
+    autoload :Dependencies, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/dependencies')
 
     # mixins
     autoload :Mixins, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/mixins')
@@ -73,29 +74,5 @@ module Palmade
         self.master.services
       end
     end
-
-    class << self
-      def require_thin
-        unless defined?(::Rack)
-          # let's load rack
-          gem 'rack', '>= 1.1.0'
-          require 'rack'
-        end
-
-        unless defined?(::Thin)
-          # let's load thin
-          gem 'thin', '>= 1.2.7'
-          require 'thin'
-        end
-      end
-
-      def require_redis
-        unless defined?(::Redis)
-          gem 'redis', '>= 2.0.0'
-          require 'redis'
-        end
-      end
-    end
-
   end
 end

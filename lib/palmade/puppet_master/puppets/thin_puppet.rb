@@ -62,7 +62,7 @@ module Palmade::PuppetMaster
       def build!
         super
 
-        Palmade::PuppetMaster.require_thin
+        Palmade::PuppetMaster::Dependencies.require_thin
         boot_thin!
       end
 
