@@ -53,9 +53,12 @@ module Palmade::PuppetMaster
         }
 
         @env['SERVER_NAME'], @env['SERVER_PORT'] = headers['host'].split(':', 2) if headers['host']
+
         headers.each do |key, val|
+          key = key.upcase.gsub('-', '_')
+
           unless key =~ /content_(type|length)/i
-            key = "HTTP_#{key.upcase.gsub('-', '_')}"
+            key = "HTTP_#{key}"
           end
           @env[key] = val
         end
