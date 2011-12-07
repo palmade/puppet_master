@@ -7,9 +7,12 @@ module Palmade::PuppetMaster
       # CGI-like request environment variables
       attr_reader :env
 
+      INITIAL_BODY = ''
+      # Force external_encoding of request's body to ASCII_8BIT
+      INITIAL_BODY.encode!(Encoding::ASCII_8BIT) if INITIAL_BODY.respond_to?(:encode!)
+
       class << self
         def parse(msg)
-          # UUID CONN_ID PATH SIZE:HEADERS,SIZE:BODY,
           uuid, conn_id, path, rest = msg.split(' ', 4)
           headers, rest = parse_netstring(rest)
           body, _ = parse_netstring(rest)
@@ -18,8 +21,6 @@ module Palmade::PuppetMaster
         end
 
         def parse_netstring(ns)
-          # SIZE:HEADERS,
-
           len, rest = ns.split(':', 2)
           len = len.to_i
           raise "Netstring did not end in ','" unless rest[len].chr == ','
@@ -28,7 +29,7 @@ module Palmade::PuppetMaster
       end
 
       def initialize(uuid, conn_id, path, headers, body)
-        @uuid, @conn_id, @path, @headers, @body = uuid, conn_id, path, headers, body
+        @uuid, @conn_id, @path, @headers, @body = uuid, conn_id, path, headers, StringIO.new(INITIAL_BODY.dup) << body
         @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
         initialize_env
       end
@@ -38,21 +39,27 @@ module Palmade::PuppetMaster
           (headers['PATTERN'].split('(', 2).first.gsub(/\/$/, '') if headers['PATTERN'])
 
         @env = {
-          'rack.version' => Rack::VERSION,
-          'rack.url_scheme' => 'http', # Only HTTP for now
-          'rack.input' => StringIO.new(@body),
-          'rack.errors' => $stderr,
-          'rack.multithread' => true,
+          'rack.version'      => Rack::VERSION,
+          'rack.url_scheme'   => 'http',
+          'rack.input'        => @body,
+          'rack.errors'       => $stderr,
+          'rack.multithread'  => true,
           'rack.multiprocess' => true,
-          'rack.run_once' => false,
-          'mongrel2.pattern' => headers['PATTERN'],
-          'REQUEST_METHOD' => headers['METHOD'],
-          'SCRIPT_NAME' => script_name,
-          'PATH_INFO' => (headers['PATH'].gsub(script_name, '') if headers['PATH']),
-          'QUERY_STRING' => headers['QUERY'] || ''
+          'rack.run_once'     => false,
+          'mongrel2.pattern'  => headers['PATTERN'],
+          'GATEWAY_INTERFACE' => 'CGI/1.1',
+          'PATH_INFO'         => (headers['PATH'].gsub(script_name, '') if headers['PATH']),
+          'QUERY_STRING'      => headers['QUERY'] || '',
+          'REQUEST_METHOD'    => headers['METHOD'],
+          'REQUEST_PATH'      => headers['PATH'],
+          'REQUEST_URI'       => headers['URI'],
+          'SCRIPT_NAME'       => script_name,
+          'SERVER_PROTOCOL'   => headers['VERSION']
         }
 
         @env['SERVER_NAME'], @env['SERVER_PORT'] = headers['host'].split(':', 2) if headers['host']
+        @env['SERVER_PORT'] ||= '80'
+        @env['FRAGMENT'] = headers['FRAGMENT'] if headers['FRAGMENT']
 
         headers.each do |key, val|
           key = key.upcase.gsub('-', '_')
