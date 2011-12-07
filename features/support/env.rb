@@ -12,15 +12,19 @@ module Utils
     output = ""
     reg = /worker .*\d+ started\: (\d+)/
 
-    while (tries -= 1) > 0
-      IO.select([pipe], nil, nil, DEFAULT_TIMEOUT) or break
-      output << pipe.readpartial(1000)
+    begin
+      while (tries -= 1) > 0
+        IO.select([pipe], nil, nil, DEFAULT_TIMEOUT) or break
+        output << pipe.readpartial(1000)
 
-      lines = output.split("\n").grep(reg)
-      lines.size == nr_workers and return lines.map { |line|
-        line.match(reg)[1] }
+        lines = output.split("\n").grep(reg)
+        lines.size == nr_workers and return lines.map { |line|
+          line.match(reg)[1] }
+      end
+    rescue EOFError
+      raise 'workers never became ready:' \
+      "\n\t#{output}\n"
     end
-    raise 'workers never became ready'
   end
 
   def self.wait_master_ready(pipe)
