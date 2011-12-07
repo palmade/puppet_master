@@ -10,4 +10,5 @@ group :test do
   gem 'em-zeromq'
   gem 'ffi-rzmq'
   gem 'ffi'
+  gem 'yajl-ruby'
 end
