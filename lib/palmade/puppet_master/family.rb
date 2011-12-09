@@ -46,6 +46,14 @@ module Palmade::PuppetMaster
       end
     end
 
+    def all_workers_checked_in?
+      @puppets.each_value do |p|
+        p.all_workers_checked_in? and next
+        return false
+      end
+      return true
+    end
+
     def murder_lazy_workers!
       @puppets.each do |k, p|
         p.murder_lazy_workers!

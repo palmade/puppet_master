@@ -2,6 +2,9 @@ module Palmade::PuppetMaster
   class Controller
     class PidFileExist < RuntimeError; end
 
+    attr_reader :pid_file
+    attr_writer :runner
+
     def initialize(proc_name, proc_argv, command, arguments, config)
       @proc_name = proc_name
       @proc_argv = proc_argv
@@ -12,10 +15,11 @@ module Palmade::PuppetMaster
       @config = config
       @configurator = nil
 
-      @logger = Logger.new($stderr)
+      @logger   = Logger.new($stderr)
       @pid_file = @config[:pid_file]
 
       @kill_timeout = 60
+      @reexec_pid   = 0
     end
 
     def doit!
@@ -25,9 +29,7 @@ module Palmade::PuppetMaster
       when "stop"
         stop
       when "restart"
-        stop
-        remove_stale_pid_file
-        start
+        Palmade::PuppetMaster::Utils.pidf_send_signal(:USR1, @pid_file)
       when "status"
         status
       end
@@ -102,6 +104,8 @@ module Palmade::PuppetMaster
       master_options[:epoll]     = @config[:epoll]
 
       Palmade::PuppetMaster.run!(master_options) do |m|
+        m.controller = self
+        m.on_all_workers_checked_in = lambda { kill_old_master }
         @configurator = nil
 
         # configurator is a file name
@@ -120,8 +124,57 @@ module Palmade::PuppetMaster
       warn e.message
     end
 
-    protected
+    def kill_old_master
+      begin
+        old_pid_file = "#{@pid_file}.old"
+        old_pid      = Palmade::PuppetMaster::Utils.pidf_read(old_pid_file)
 
+        if Palmade::PuppetMaster::Utils.pidf_running?(old_pid_file)
+          @logger.warn "killing old master: #{old_pid}"
+          Palmade::PuppetMaster::Utils.pidf_kill(old_pid_file, @kill_timeout)
+        end
+      rescue Errno::ESRCH
+        @logger.warn "old master not found."
+      end
+    end
+
+    def reexec(commit_matricide = false, listeners = {})
+      return if @runner.nil? or @runner.start_ctx.nil? or @runner.start_ctx.empty?
+
+      # clear env in advance
+      ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = nil
+
+      # make way for reexec's pid file
+      old_pid_file = @pid_file
+      @pid_file = "#{old_pid_file}.old"
+
+      File.rename(old_pid_file, @pid_file)
+
+      @reexec_pid = Kernel.fork do
+        listener_fds = ''
+
+        listeners.each do |lk, sockets|
+          sockets.each do |sock|
+            # IO#close_on_exec= will be available on any future version of
+            # Ruby that sets FD_CLOEXEC by default on new file descriptors
+            # ref: http://redmine.ruby-lang.org/issues/5041
+            sock.close_on_exec = false if sock.respond_to?(:close_on_exec=)
+            listener_fds << "#{lk}|#{sock.fileno},"
+          end
+        end
+
+        ENV['PUPPET_MASTER_FD'] = listener_fds
+        ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = 'true' if commit_matricide
+
+        Dir.chdir(@runner.start_ctx[:cwd])
+        cmd = [ @runner.start_ctx[0] ].concat(@runner.start_ctx[:argv])
+
+        @logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
+        exec(*cmd)
+      end
+    end
+
+    protected
     def verify_pid_file!
       unless @pid_file
         warn "Checking pid_file, but i couldn't figure out where the pid file is."

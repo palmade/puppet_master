@@ -10,45 +10,49 @@ module Palmade::PuppetMaster
 
     SELF_PIPE = []
 
+    # Prevents IO objects in here from being GC-ed
+    IO_PURGATORY = []
+
     QUEUE_SIGS = [ :WINCH, :QUIT, :INT, :TERM, :USR1, :USR2, :HUP, :TTIN, :TTOU ]
 
     attr_accessor :family
     attr_accessor :logger
     attr_accessor :timeout
+    attr_accessor :proc_tag
+    attr_accessor :controller
 
     attr_reader :pid
     attr_reader :services
     attr_reader :reserved_ports
     attr_reader :forks
-
     attr_reader :proc_name
     attr_reader :proc_argv
-    attr_accessor :proc_tag
-
     attr_reader :listeners
 
+    attr_writer :on_all_workers_checked_in
+
     def initialize(options = { })
-      @options = DEFAULT_OPTIONS.merge(options)
-      @family = nil
+      @options   = DEFAULT_OPTIONS.merge(options)
+      @family    = nil
       @sig_queue = [ ]
 
       @proc_name = @options[:proc_name]
       @proc_argv = @options[:proc_argv]
-      @proc_tag = @options[:proc_tag]
+      @proc_tag  = @options[:proc_tag]
 
-      @respawn = true
-      @stopped = nil
+      @respawn   = true
+      @stopped   = nil
 
-      @timeout = @options[:timeout]
-      @nap_time = @options[:nap_time]
+      @timeout   = @options[:timeout]
+      @nap_time  = @options[:nap_time]
 
-      @services = { }
+      @forks     = [ ]
+
+      @services       = { }
       @reserved_ports = ::Set.new
-      @listeners = { }
+      @listeners      = { }
 
-      @forks = [ ]
-
-      @reset_application_callbacks = [ ]
+      @reset_application_callbacks    = [ ]
       @shutdown_application_callbacks = [ ]
 
       if logger.nil?
@@ -274,13 +278,29 @@ module Palmade::PuppetMaster
 
     protected
 
+    # supported listener specs:
+    # - 127.0.0.1:80
+    # - 80 (port only, defaults to localhost)
+    # - /path/unix
     def create_listeners!
-      raise ArgumentError, "Listeners already initialized" unless @listeners.empty?
+      inherited = {}
+      ENV['PUPPET_MASTER_FD'].to_s.split(/,/).each do |fd|
+        lk, fd = fd.split('|')
+        io = Socket.for_fd(fd.to_i)
+        Palmade::PuppetMaster::SocketHelper.set_server_sockopt(io)
+        IO_PURGATORY << io
+        logger.info "inherited addr=#{Socket.unpack_sockaddr_in(io.getsockname)} fd=#{fd}"
+        io = Palmade::PuppetMaster::SocketHelper.server_cast(io)
 
-      # supported listener specs:
-      # - 127.0.0.1:80
-      # - 80 (port only, defaults to localhost)
-      # - /path/unix
+        lk = nil if lk.empty?
+        inherited[lk] ||= []
+        inherited[lk] << io
+      end
+
+      @listeners.replace(inherited)
+
+      return unless inherited.empty?
+
       unless @options[:listen].nil? || @options[:listen].empty?
         case @options[:listen]
         when Hash, Palmade::PuppetMaster::Config
@@ -396,6 +416,7 @@ module Palmade::PuppetMaster
           family.murder_lazy_workers!
           maintain_services!
           family.maintain_workers! if @respawn
+          on_all_workers_checked_in if ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] and family.all_workers_checked_in?
         when :QUIT, :INT # graceful shutdown
           stop!
           break
@@ -410,6 +431,10 @@ module Palmade::PuppetMaster
           end
         when :HUP
           @respawn = true
+        when :USR1
+          reexec(true)
+        when :USR2
+          reexec
         end
 
         unless @stopped
@@ -423,6 +448,15 @@ module Palmade::PuppetMaster
         logger.error e.backtrace.join("\n")
       end while true
       handler
+    end
+
+    def on_all_workers_checked_in
+      @on_all_workers_checked_in.call if @on_all_workers_checked_in
+    end
+
+    def reexec(commit_matricide)
+      controller.reexec(commit_matricide, listeners)
+      set_proc_name "master (old) [#{@proc_tag}]"
     end
 
     def take_a_nap!(sec = @nap_time)

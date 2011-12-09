@@ -72,6 +72,16 @@ module Palmade::PuppetMaster
           end
         end
 
+        def all_workers_checked_in?
+          return unless (@workers.size - @count) == 0
+
+          @workers.dup.each_value do |worker|
+            worker.checked_in? and next
+            return false
+          end
+          return true
+        end
+
         def kill_each_workers(signal)
           @workers.keys.each { |wpid| kill_worker(signal, wpid) }
         end

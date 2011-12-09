@@ -20,9 +20,9 @@ require 'eventmachine'
 
 module Palmade
   module PuppetMaster
-    def self.logger; @logger; end
+    def self.logger;     @logger    ; end
     def self.logger=(l); @logger = l; end
-    def self.master; @master; end
+    def self.master;     @master    ; end
     def self.master=(m); @master = m; end
 
     # main classes

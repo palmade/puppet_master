@@ -22,6 +22,7 @@ module Palmade::PuppetMaster
       @master_pid = m.pid
       @m = 0
       @stopped = false
+      @initialized_time = @tmp.stat.ctime
     end
 
     def services
@@ -64,6 +65,10 @@ module Palmade::PuppetMaster
       ret = @puppet.work_loop(self, ret)
       ret = @puppet.after_work(self, ret)
       ret
+    end
+
+    def checked_in?
+      @tmp.stat.ctime > @initialized_time
     end
 
     def ok?

@@ -44,7 +44,7 @@ module Palmade::PuppetMaster
       end
     end
 
-    def self.set_server_sockopt(sock, opt)
+    def self.set_server_sockopt(sock, opt = nil)
       opt ||= {}
 
       TCPSocket === sock and set_tcp_sockopt(sock, opt)
@@ -140,6 +140,16 @@ module Palmade::PuppetMaster
       avail_port
     ensure
       s.close
+    end
+
+    # casts a given Socket to be a TCPServer or UNIXServer
+    def self.server_cast(sock)
+      begin
+        Socket.unpack_sockaddr_in(sock.getsockname)
+        TCPServer.for_fd(sock.fileno)
+      rescue ArgumentError
+        UNIXServer.for_fd(sock.fileno)
+      end
     end
   end
 end

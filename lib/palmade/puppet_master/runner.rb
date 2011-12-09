@@ -61,6 +61,8 @@ module Palmade::PuppetMaster
       @config.update!(options)
       @config[:block] = block if block_given?
 
+      store_context
+
       @command = nil
       @arguments = [ ]
     end
@@ -221,7 +223,9 @@ module Palmade::PuppetMaster
       end
 
       if self.class.commands.include?(@command)
-        Palmade::PuppetMaster::Controller.new(pn, @argv, @command, @arguments, @config)
+        controller = Palmade::PuppetMaster::Controller.new(pn, @argv, @command, @arguments, @config)
+        controller.runner = self
+        controller
       else
         abort "Unknown command: #{@command}. Use one of #{self.class.commands.join(', ')}"
       end
