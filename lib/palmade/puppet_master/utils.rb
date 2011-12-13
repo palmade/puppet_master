@@ -53,21 +53,13 @@ module Palmade::PuppetMaster
 
     def self.pidf_kill(pid_file, timeout = 30)
       if timeout == 0
-        pidf_send_signal('INT', pid_file, timeout)
+        pidf_send_signal('INT', pid_file)
       else
-        pidf_send_signal('QUIT', pid_file, timeout)
+        pidf_send_signal('QUIT', pid_file)
       end
-    end
 
-    def self.pidf_send_signal(signal, pid_file, timeout = 30)
-      if pid = pidf_read(pid_file)
-        Process.kill(signal, pid)
-        Timeout.timeout(timeout) do
-          sleep 0.1 while process_running?(pid)
-        end
-        pid
-      else
-        nil
+      Timeout.timeout(timeout) do
+        sleep 0.1 while pidf_running?(pid_file)
       end
     rescue Timeout::Error
       pidf_force_kill pid_file
@@ -75,6 +67,15 @@ module Palmade::PuppetMaster
       pidf_force_kill pid_file
     rescue Errno::ESRCH # No such process
       pidf_force_kill pid_file
+    end
+
+    def self.pidf_send_signal(signal, pid_file)
+      if pid = pidf_read(pid_file)
+        Process.kill(signal, pid)
+        pid
+      else
+        nil
+      end
     end
 
     def self.pidf_force_kill(pid_file)
