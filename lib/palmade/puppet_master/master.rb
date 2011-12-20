@@ -1,5 +1,7 @@
 module Palmade::PuppetMaster
   class Master
+    include Palmade::PuppetMaster::Mixins::Callbacks
+
     DEFAULT_OPTIONS = {
       :timeout => 45,
       :nap_time => 3,
@@ -29,8 +31,6 @@ module Palmade::PuppetMaster
     attr_reader :proc_argv
     attr_reader :listeners
 
-    attr_writer :on_all_workers_checked_in
-
     def initialize(options = { })
       @options   = DEFAULT_OPTIONS.merge(options)
       @family    = nil
@@ -51,9 +51,6 @@ module Palmade::PuppetMaster
       @services       = { }
       @reserved_ports = ::Set.new
       @listeners      = { }
-
-      @reset_application_callbacks    = [ ]
-      @shutdown_application_callbacks = [ ]
 
       if logger.nil?
         if Palmade::PuppetMaster.logger.nil?
@@ -214,15 +211,7 @@ module Palmade::PuppetMaster
     # reset application is called from a worker, to tell it to re-set,
     # right after forking
     def reset_application!(worker)
-      unless @reset_application_callbacks.empty?
-        @reset_application_callbacks.each do |c|
-          c.call(worker, self)
-        end
-      end
-    end
-
-    def on_reset_application(&block)
-      @reset_application_callbacks.push(&block)
+      run_callback(:on_reset_application, worker, self)
     end
 
     # this method is called from the newly forked worker process
@@ -239,15 +228,7 @@ module Palmade::PuppetMaster
     # a custom method, that calls a defined block
     # is called when a service exec, and we need to shutdown
     def shutdown_application!(service)
-      unless @shutdown_application_callbacks.empty?
-        @shutdown_application_callbacks.each do |c|
-          c.call(service, self)
-        end
-      end
-    end
-
-    def on_shutdown_application(&block)
-      @shutdown_application_callbacks.push(&block)
+      run_callback(:on_shutdown_application, service, self)
     end
 
     # shutdown master process, in case we are forking to an 'unsupported child'
@@ -416,7 +397,7 @@ module Palmade::PuppetMaster
           family.murder_lazy_workers!
           maintain_services!
           family.maintain_workers! if @respawn
-          on_all_workers_checked_in if ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] and family.all_workers_checked_in?
+          run_callback_once(:on_all_workers_checked_in) if family.all_workers_checked_in?
         when :QUIT, :INT # graceful shutdown
           stop!
           break
@@ -448,10 +429,6 @@ module Palmade::PuppetMaster
         logger.error e.backtrace.join("\n")
       end while true
       handler
-    end
-
-    def on_all_workers_checked_in
-      @on_all_workers_checked_in.call if @on_all_workers_checked_in
     end
 
     def reexec(commit_matricide)

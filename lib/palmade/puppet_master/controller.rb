@@ -105,7 +105,11 @@ module Palmade::PuppetMaster
 
       Palmade::PuppetMaster.run!(master_options) do |m|
         m.controller = self
-        m.on_all_workers_checked_in = lambda { kill_old_master }
+
+        if ENV['PUPPET_MASTER_COMMIT_MATRICIDE']
+          m.on_callback_once(:on_all_workers_checked_in, &method(:kill_old_master))
+        end
+
         @configurator = nil
 
         # configurator is a file name
