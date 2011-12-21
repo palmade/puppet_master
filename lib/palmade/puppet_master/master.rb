@@ -431,7 +431,7 @@ module Palmade::PuppetMaster
       handler
     end
 
-    def reexec(commit_matricide)
+    def reexec(commit_matricide = false)
       controller.reexec(commit_matricide, listeners)
       set_proc_name "master (old) [#{@proc_tag}]"
     end
