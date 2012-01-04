@@ -19,7 +19,7 @@ module Palmade::PuppetMaster
       @pid_file = @config[:pid_file]
 
       @kill_timeout = 60
-      @reexec_pid   = 0
+      @reexec_pid   = nil
     end
 
     def doit!
@@ -140,6 +140,7 @@ module Palmade::PuppetMaster
       @pid_file = old_pid_file.sub(/\.old$/, '')
 
       File.rename(old_pid_file, @pid_file)
+      @reexec_pid = nil
     end
 
     def kill_old_master
@@ -158,6 +159,11 @@ module Palmade::PuppetMaster
 
     def reexec(commit_matricide = false, listeners = {})
       return if @runner.nil? or @runner.start_ctx.nil? or @runner.start_ctx.empty?
+
+      if @reexec_pid
+        @logger.warn "Already running a reexec-ed master: #{@reexec_pid}"
+        return
+      end
 
       # clear env in advance
       ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = nil
