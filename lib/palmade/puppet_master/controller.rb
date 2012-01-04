@@ -188,6 +188,10 @@ module Palmade::PuppetMaster
       end
     end
 
+    def reexeced?
+      ENV['PUPPET_MASTER_FD']? true : false
+    end
+
     def daemonize
       # let's disable any output, if we're daemonizing
       # and no log file is specified!
@@ -201,13 +205,15 @@ module Palmade::PuppetMaster
         @logger = Logger.new(@config[:log_file])
       end
 
-      # double fork here, for some reason Daemonize also said
-      # we should do it! so i'm doing it.
-      exit(0) if fork
+      unless reexeced?
+        # double fork here, for some reason Daemonize also said
+        # we should do it! so i'm doing it.
+        exit(0) if fork
 
-      # second fork to get off any remaining terminal
-      sess_id = Process.setsid
-      exit(0) if fork
+        # second fork to get off any remaining terminal
+        sess_id = Process.setsid
+        exit(0) if fork
+      end
 
       $stdin.reopen("/dev/null")
       $stdin.sync = true
