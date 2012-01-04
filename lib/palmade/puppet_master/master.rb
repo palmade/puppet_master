@@ -474,6 +474,7 @@ module Palmade::PuppetMaster
           wpid, status = Process.waitpid2(-1, Process::WNOHANG)
           wpid or break
 
+          run_callback(:on_reap_dead_children, wpid, status)
           family.reap!(wpid, status)
           services.each_value { |s| s.reap!(wpid, status) }
       rescue Errno::ECHILD

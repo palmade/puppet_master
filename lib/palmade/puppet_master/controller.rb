@@ -106,6 +106,8 @@ module Palmade::PuppetMaster
       Palmade::PuppetMaster.run!(master_options) do |m|
         m.controller = self
 
+        m.on_callback(:on_reap_dead_children, &method(:restore_pid_file))
+
         if ENV['PUPPET_MASTER_COMMIT_MATRICIDE']
           m.on_callback_once(:on_all_workers_checked_in, &method(:kill_old_master))
         end
@@ -126,6 +128,18 @@ module Palmade::PuppetMaster
       end
     rescue PidFileExist => e
       warn e.message
+    end
+
+    def restore_pid_file(wpid, status)
+      return unless wpid == @reexec_pid
+
+      @logger.error "reexec-ed() master died"
+      @logger.info  "restoring pid file"
+
+      old_pid_file = @pid_file
+      @pid_file = old_pid_file.sub(/\.old$/, '')
+
+      File.rename(old_pid_file, @pid_file)
     end
 
     def kill_old_master
