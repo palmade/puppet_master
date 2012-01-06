@@ -100,35 +100,36 @@ module Palmade::PuppetMaster
         master_logger.warn("thin worker #{worker.proc_tag} started: #{$$}, " +
                            "stats: #{@max_total_connections} #{@max_current_connections} #{@max_persistent_connections} (#{loop_start})")
 
-                           # trap(:USR1) {  } do nothing, it should reload logs
-                           [ :INT ].each { |sig| trap(sig) { } } # do nothing
-                           [ :QUIT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
-                           [ :TERM, :KILL ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
+        # trap(:USR1) {  } do nothing, it should reload logs
+        [ :INT ].each { |sig| trap(sig) { } } # do nothing
+        [ :QUIT ].each { |sig| trap(sig)  { stop_work_loop(worker) } } # graceful shutdown
+        [ :TERM, :KILL ].each { |sig| trap(sig) { stop_work_loop(worker, true) } } # instant shutdown
 
-                           EventMachine.epoll
-                           EventMachine.kqueue
+        EventMachine.epoll
+        EventMachine.kqueue
 
-                           EventMachine.run do
+        EventMachine.run do
+          # do some work
+          if block_given?
+            yield(self, worker)
+          elsif !@work_loop.nil?
+            @work_loop.call(self, worker)
+          else
+            start!
+          end
 
-                             # do some work
-                             if block_given?
-                               yield(self, worker)
-                             elsif !@work_loop.nil?
-                               @work_loop.call(self, worker)
-                             else
-                               start!
-                             end
+          notify_alive!(worker)
 
-                             # schedule a timer, so we can check-in every request
-                             # just set it to 15 secs, so not to unnecessarily busy ourselves
-                             @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
-                           end
-                           worker.stop!
+          # schedule a timer, so we can check-in every request
+          # just set it to 15 secs, so not to unnecessarily busy ourselves
+          @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
+        end
+        worker.stop!
 
-                           master_logger.warn("thin worker #{worker.proc_tag} stopped: #{$$}, " +
-                                              "stats: #{@total_connections}, started #{(Time.now - loop_start).to_i} sec(s) ago (#{loop_start})")
+        master_logger.warn("thin worker #{worker.proc_tag} stopped: #{$$}, " +
+                  "stats: #{@total_connections}, started #{(Time.now - loop_start).to_i} sec(s) ago (#{loop_start})")
 
-                                              ret
+        ret
       end
 
       def stop_work_loop(worker, now = false)
