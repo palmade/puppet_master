@@ -4,6 +4,7 @@ module Palmade::PuppetMaster
 
     attr_reader :argv
     attr_reader :config
+    attr_reader :start_ctx
 
     DEFAULT_OPTIONS = {
       :listen => [ ],
@@ -45,6 +46,10 @@ module Palmade::PuppetMaster
       # i'm too lame to figure out what they're for!
       $stdin.sync = $stdout.sync = $stderr.sync = true
       $stdin.binmode; $stdout.binmode; $stderr.binmode
+
+      store_context
+
+      increase_proctitle_limit
 
       @argv = argv.clone
       @argv.delete_if { |a| a.strip.empty? }
@@ -222,6 +227,35 @@ module Palmade::PuppetMaster
       end
     ensure
       Dir.chdir(cur_dir)
+    end
+
+    protected
+
+    # Increase proctitle limit by appending a 64 character string into
+    # ARGV and then removing it afterwards.
+    def increase_proctitle_limit
+      if ARGV.last =~ /X{64}/
+        ARGV.pop
+      else
+        argv = start_ctx[:argv] + ['X' * 64]
+        cmd  = [ start_ctx[0] ].concat(argv)
+        exec(*cmd)
+      end
+    end
+
+    def store_context
+      @start_ctx = {
+        :argv => ARGV.map { |arg| arg.dup },
+        0     => $0.dup
+      }
+
+      @start_ctx[:cwd] = begin
+                            a = File.stat(pwd = ENV['PWD'])
+                            b = File.stat(Dir.pwd)
+                            a.ino == b.ino && a.dev == b.dev ? pwd : Dir.pwd
+                          rescue
+                            Dir.pwd
+                          end
     end
   end
 end
