@@ -29,7 +29,7 @@ module Palmade::PuppetMaster
       when "stop"
         stop
       when "restart"
-        Palmade::PuppetMaster::Utils.pidf_send_signal(:USR1, @pid_file)
+        restart
       when "status"
         status
       end
@@ -54,6 +54,15 @@ module Palmade::PuppetMaster
           warn "#{$0} is not running"
           remove_stale_pid_file
         end
+      end
+    end
+
+    def restart
+      if running?
+        warn "Sending USR1 to #{Palmade::PuppetMaster::Utils.pidf_read(@pid_file)}"
+        Palmade::PuppetMaster::Utils.pidf_send_signal(:USR1, @pid_file)
+      else
+        abort "aborted, nothing to restart"
       end
     end
 
