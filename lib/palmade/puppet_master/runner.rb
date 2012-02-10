@@ -47,9 +47,9 @@ module Palmade::PuppetMaster
       $stdin.sync = $stdout.sync = $stderr.sync = true
       $stdin.binmode; $stdout.binmode; $stderr.binmode
 
-      store_context
-
       increase_proctitle_limit
+
+      store_context
 
       @argv = argv.clone
       @argv.delete_if { |a| a.strip.empty? }
@@ -241,8 +241,8 @@ module Palmade::PuppetMaster
       if ARGV.last =~ /X{64}/
         ARGV.pop
       else
-        argv = start_ctx[:argv] + ['X' * 64]
-        cmd  = [ start_ctx[0] ].concat(argv)
+        argv = ARGV + ['X' * 64]
+        cmd  = [$0].concat(argv)
         exec(*cmd)
       end
     end
