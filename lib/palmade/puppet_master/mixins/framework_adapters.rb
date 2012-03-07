@@ -43,7 +43,7 @@ module Palmade::PuppetMaster
         root = @adapter_options[:root] || Dir.pwd
 
         if @adapter_options.include?(:camping_boot)
-          camping_boot = @adapter_options[:camping_boot]
+          camping_boot = File.join(root, @adapter_options[:camping_boot])
         else
           camping_boot = File.join(root, "config/camping.rb")
         end
