@@ -41,7 +41,13 @@ module Palmade::PuppetMaster
 
       def load_camping_adapter
         root = @adapter_options[:root] || Dir.pwd
-        camping_boot = File.join(root, "config/camping.rb")
+
+        if @adapter_options.include?(:camping_boot)
+          camping_boot = @adapter_options[:camping_boot]
+        else
+          camping_boot = File.join(root, "config/camping.rb")
+        end
+
         if File.exists?(camping_boot)
 
           Object.const_set('CAMPING_ENV', RACK_ENV)
@@ -63,7 +69,7 @@ module Palmade::PuppetMaster
             raise LoadError, "It looks like Camping gem is not loaded properly (::Camping not defined)"
           end
         else
-          raise ArgumentError, "Set to load camping adapter, but could not find config/camping.rb"
+          raise ArgumentError, "Set to load camping adapter, but could not find #{camping_boot}"
         end
       end
 
