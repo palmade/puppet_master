@@ -13,12 +13,8 @@ module Palmade::PuppetMaster
         @response_sock = response_sock
       end
 
-      def on_readable(socket, messages)
-        msg = messages.inject("") do |str, m|
-          str += m.copy_out_string
-          m.close
-          str
-        end
+      def on_readable(socket, parts)
+        msg = parts.map(&:copy_out_string).join
 
         @request = msg.nil? ? nil : Request.parse(msg)
         if !@request.nil? && !@request.disconnect?

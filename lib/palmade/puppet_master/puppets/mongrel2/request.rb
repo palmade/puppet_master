@@ -3,34 +3,31 @@ module Palmade::PuppetMaster
     class Request
 
       attr_reader :headers, :body, :uuid, :conn_id, :path
-
-      # CGI-like request environment variables
       attr_reader :env
-
-      INITIAL_BODY = ''
-      # Force external_encoding of request's body to ASCII_8BIT
-      INITIAL_BODY.encode!(Encoding::ASCII_8BIT) if INITIAL_BODY.respond_to?(:encode!)
 
       class << self
         def parse(msg)
           uuid, conn_id, path, rest = msg.split(' ', 4)
-          headers, rest = parse_netstring(rest)
-          body, _ = parse_netstring(rest)
-          headers = Yajl::Parser.parse(headers)
+          json_headers, rest        = parse_netstring(rest)
+          body, _                   = parse_netstring(rest)
+          headers                   = Yajl::Parser.parse(json_headers)
+
           new(uuid, conn_id, path, headers, body)
         end
 
         def parse_netstring(ns)
           len, rest = ns.split(':', 2)
-          len = len.to_i
+          len       = len.to_i
           raise "Netstring did not end in ','" unless rest[len].chr == ','
           [rest[0, len], rest[(len + 1)..-1]]
         end
       end
 
       def initialize(uuid, conn_id, path, headers, body)
-        @uuid, @conn_id, @path, @headers, @body = uuid, conn_id, path, headers, StringIO.new(INITIAL_BODY.dup) << body
+        @uuid, @conn_id, @path, @headers = uuid, conn_id, path, headers
+        @body = StringIO.new(body).set_encoding(Encoding::ASCII_8BIT)
         @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
+
         initialize_env
       end
 
