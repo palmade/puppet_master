@@ -23,10 +23,13 @@ module Palmade::PuppetMaster
 
       def connect
         # Connect to send responses
-        @resp = CTX.connect(ZMQ::PUB, @pub, :identity => @uuid)
+        @resp = CTX.socket(ZMQ::PUB)
+        @resp.connect(@pub)
+        @resp.setsockopt(ZMQ::IDENTITY, @uuid)
 
         # Connect to receive requests
-        @reqs = CTX.connect(ZMQ::PULL, @sub, Connection.new(@app, @resp))
+        @reqs = CTX.socket(ZMQ::PULL, Connection.new(@app, @resp))
+        @reqs.connect(@sub)
       end
 
       def stop

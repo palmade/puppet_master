@@ -28,6 +28,8 @@ module Palmade::PuppetMaster
         unless defined?(::EM::ZeroMQ)
           require 'em-zeromq'
         end
+
+        raise 'Needs em-zeromq 0.3.0' unless EmZeromq::VERSION == '0.3.0'
       end
 
       def require_yajl
