@@ -25,16 +25,16 @@ module Palmade::PuppetMaster
 
       def initialize(uuid, conn_id, path, headers, body)
         @uuid, @conn_id, @path, @headers = uuid, conn_id, path, headers
-        @body = StringIO.new(body).set_encoding(Encoding::ASCII_8BIT)
+
+        @body = StringIO.new(body)
+        @body.set_encoding(Encoding::ASCII_8BIT) if @body.respond_to?(:set_encoding)
+
         @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
 
         initialize_env
       end
 
       def initialize_env
-        script_name = ENV['RACK_RELATIVE_URL_ROOT'] ||
-          (headers['PATTERN'].split('(', 2).first.gsub(/\/$/, '') if headers['PATTERN'])
-
         @env = {
           'rack.version'      => Rack::VERSION,
           'rack.url_scheme'   => 'http',
@@ -45,12 +45,12 @@ module Palmade::PuppetMaster
           'rack.run_once'     => false,
           'mongrel2.pattern'  => headers['PATTERN'],
           'GATEWAY_INTERFACE' => 'CGI/1.1',
-          'PATH_INFO'         => (headers['PATH'].gsub(script_name, '') if headers['PATH']),
+          'PATH_INFO'         => headers['PATH'],
           'QUERY_STRING'      => headers['QUERY'] || '',
           'REQUEST_METHOD'    => headers['METHOD'],
           'REQUEST_PATH'      => headers['PATH'],
           'REQUEST_URI'       => headers['URI'],
-          'SCRIPT_NAME'       => script_name,
+          'SCRIPT_NAME'       => '',
           'SERVER_PROTOCOL'   => headers['VERSION']
         }
 
