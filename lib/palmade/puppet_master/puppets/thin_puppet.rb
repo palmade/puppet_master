@@ -212,6 +212,15 @@ module Palmade::PuppetMaster
         thin_opts[:signals] = false
 
         @thin = ::Thin::Server.new(thin_opts)
+
+        # enable ssl if minimum configurations are supplied
+        unless @adapter_options[:ssl].nil?
+         if valid_ssl_options?
+          @thin.ssl = true
+          @thin.ssl_options = @adapter_options[:ssl]
+         end
+        end
+
         @thin.backend.puppet = self
 
         @thin.threaded = @options[:threaded]
@@ -241,6 +250,10 @@ module Palmade::PuppetMaster
 
         # If a stats URL is specified, wrap in Stats adapter
         @thin.app = Stats::Adapter.new(@thin.app, @options[:stats]) if @options[:stats]
+      end
+
+      def valid_ssl_options?
+        (@adapter_options[:ssl].fetch(:private_key_file) && @adapter_options[:ssl].fetch(:cert_chain_file))
       end
     end
   end

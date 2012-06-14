@@ -5,3 +5,5 @@ pkg/*
 .rspec
 coverage/*
 spec/logs/*
+*.swp
+*.swo
