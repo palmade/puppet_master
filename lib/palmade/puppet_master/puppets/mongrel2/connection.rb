@@ -17,9 +17,7 @@ module Palmade::PuppetMaster
         msg = parts.map(&:copy_out_string).join
 
         @request = msg.nil? ? nil : Request.parse(msg)
-        if !@request.nil? && !@request.disconnect?
-          process
-        end
+        process unless (@request.nil? && @request.disconnect?)
       end
 
       def process
@@ -30,9 +28,17 @@ module Palmade::PuppetMaster
         @request.async_callback = method(:post_process)
 
         response = AsyncResponse
+
+        # ignore connection if mongrel2 is starting an upload
+        # we'll process this once uploading is already done.
+        return if @request.upload_starting?
+
+        @request.verify_upload if @request.upload_done?
+
         catch(:async) do
           response = @app.call(@request.env)
         end
+
         response
       end
 

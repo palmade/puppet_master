@@ -26,8 +26,7 @@ module Palmade::PuppetMaster
       def initialize(uuid, conn_id, path, headers, body)
         @uuid, @conn_id, @path, @headers = uuid, conn_id, path, headers
 
-        @body = StringIO.new(body)
-        @body.set_encoding(Encoding::ASCII_8BIT) if @body.respond_to?(:set_encoding)
+        @body = process_body body
 
         @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
 
@@ -84,6 +83,35 @@ module Palmade::PuppetMaster
       def close?
         headers['connection'] == 'close' || headers['VERSION'] == 'HTTP/1.0'
       end
+
+      protected
+
+      def process_body(body)
+        if path = @headers['x-mongrel2-upload-done']
+          File.open(path, 'rb')
+        else
+          StringIO.new(body).tap do |b|
+            b.set_encoding(Encoding::ASCII_8BIT) if b.respond_to?(:set_encoding)
+          end
+        end
+      end
+
+      def upload_starting?
+        @headers['x-mongrel2-upload-start'] &&
+          !@headers['x-mongrel2-upload-done']
+      end
+
+      def upload_done?
+        @headers.includes? 'x-mongrel2-upload-done'
+      end
+
+      def verify_upload
+        expected = @headers['x-mongrel2-upload-start']
+        uploaded = @headers['x-mongrel2-upload-done']
+
+        raise "Got wrong target file. Expected #{expected} but received #{uploaded}"
+      end
+
 
     end
   end
