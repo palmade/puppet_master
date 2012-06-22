@@ -84,6 +84,22 @@ module Palmade::PuppetMaster
         headers['connection'] == 'close' || headers['VERSION'] == 'HTTP/1.0'
       end
 
+      def upload_starting?
+        @headers['x-mongrel2-upload-start'] &&
+          !@headers['x-mongrel2-upload-done']
+      end
+
+      def upload_done?
+        @headers.include? 'x-mongrel2-upload-done'
+      end
+
+      def verify_upload
+        expected = @headers['x-mongrel2-upload-start']
+        uploaded = @headers['x-mongrel2-upload-done']
+
+        raise "Got wrong target file. Expected #{expected} but received #{uploaded}"
+      end
+
       protected
 
       def process_body(body)
@@ -95,23 +111,6 @@ module Palmade::PuppetMaster
           end
         end
       end
-
-      def upload_starting?
-        @headers['x-mongrel2-upload-start'] &&
-          !@headers['x-mongrel2-upload-done']
-      end
-
-      def upload_done?
-        @headers.includes? 'x-mongrel2-upload-done'
-      end
-
-      def verify_upload
-        expected = @headers['x-mongrel2-upload-start']
-        uploaded = @headers['x-mongrel2-upload-done']
-
-        raise "Got wrong target file. Expected #{expected} but received #{uploaded}"
-      end
-
 
     end
   end
