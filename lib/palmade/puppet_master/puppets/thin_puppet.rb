@@ -9,7 +9,7 @@ module Palmade::PuppetMaster
         :adapter => nil,
         :adapter_options => { },
         :listen_key => nil,
-        :idle_time => 15,
+        :idle_time => nil,
         :post_process => nil,
         :idle_process => nil,
         :prefix => nil,
@@ -50,7 +50,9 @@ module Palmade::PuppetMaster
         @idle_process = @options[:idle_process]
         @idle_timer = nil
 
-        @total_connections = 0
+        @options[:idle_time] ||= @master.timeout * 0.8
+
+        @total_connections     = 0
         @max_total_connections = @options[:max_total_connections]
 
         # how many connections should be outstanding (including

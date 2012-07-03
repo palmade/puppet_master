@@ -3,16 +3,12 @@ module Palmade::PuppetMaster
     class Mongrel2Puppet < Base
       include Palmade::PuppetMaster::Mixins::FrameworkAdapters
 
-      DEFAULT_OPTIONS = Palmade::PuppetMaster::Puppets::Base::DEFAULT_OPTIONS.merge({
-        :idle_time => 15,
-      })
-
-
       def initialize(master = nil, family = nil, options = { }, &block)
-        super(master, family, DEFAULT_OPTIONS.merge(options), &block)
+        super(master, family, options, &block)
 
-        @adapter = @options[:adapter]
-        @adapter_options = @options[:adapter_options]
+        @options[:idle_time] ||= @master.timeout * 0.8
+        @adapter               = @options[:adapter]
+        @adapter_options       = @options[:adapter_options]
       end
 
       def build!
