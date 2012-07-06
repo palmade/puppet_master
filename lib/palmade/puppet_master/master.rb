@@ -257,6 +257,20 @@ module Palmade::PuppetMaster
       end
     end
 
+    def revert_logger
+      return unless logger.is_a? Logger
+
+      if logger.respond_to?(:old_format_message, true)
+        logger.instance_eval do
+          alias format_message old_format_message
+        end
+      end
+
+      if defined?(Logger::Formatter)
+        logger.formatter = Logger::Formatter.new
+      end
+    end
+
     protected
 
     # supported listener specs:

@@ -228,17 +228,7 @@ module Palmade::PuppetMaster
 
         app = load_adapter
 
-        # Revert logger if Rails changes Logger behavior
-        if master_logger.is_a?(Logger)
-          if Logger.private_instance_methods.include?('old_format_message')
-            master_logger.instance_eval do
-              alias format_message old_format_message
-            end
-          end
-          if defined?(Logger::Formatter)
-            master_logger.formatter = Logger::Formatter.new
-          end
-        end
+        master.revert_logger
 
         unless @options[:rack_builder].nil?
           app = @options[:rack_builder].call(app, self)
