@@ -1,5 +1,7 @@
 module Palmade::PuppetMaster
   class ServiceRedis < Palmade::PuppetMaster::Service
+    attr_reader :logger
+
     def self.redis_path; @@redis_path; end
     def self.redis_path=(rp); @@redis_path = rp; end
     self.redis_path = `which redis-server`.strip
@@ -17,6 +19,8 @@ module Palmade::PuppetMaster
       @listen_host = @options[:listen_host]
 
       @temp_files = { }
+
+      @logger = @master.logger
     end
 
     def start
@@ -43,7 +47,7 @@ module Palmade::PuppetMaster
 
     def client
       if @client.nil? && !@disabled
-        Palmade::PuppetMaster.require_redis
+        Palmade::PuppetMaster::Dependencies.require_redis
 
         logger.warn "#{@service_name} client connect: #{@listen_host}:#{@listen_port}"
         @client = Redis.new(@options[:client_options].update(:host => @listen_host, :port => @listen_port))
