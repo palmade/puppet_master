@@ -13,13 +13,16 @@ module Palmade::PuppetMaster
         EventMachine.kqueue
 
         EventMachine.run do
+          EventMachine.next_tick { first_tick }
           # do some work
-          if block_given?
-            yield(self, worker)
-          elsif !@work_loop.nil?
-            @work_loop.call(self, worker)
-          else
-            EventMachine.next_tick { work_work(worker) }
+          unless workloop_disabled?
+            if block_given?
+              yield(self, worker)
+            elsif !@work_loop.nil?
+              @work_loop.call(self, worker)
+            else
+              EventMachine.next_tick { work_work(worker) }
+            end
           end
         end
         worker.stop!
@@ -34,6 +37,13 @@ module Palmade::PuppetMaster
         EventMachine.stop_event_loop if EventMachine.reactor_running?
       end
 
+      def workloop_disabled?
+        @options[:disable_workloop]
+      end
+
+      def first_tick
+        #do nothing
+      end
       protected
 
       def work_work(w)

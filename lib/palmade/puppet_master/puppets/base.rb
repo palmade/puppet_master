@@ -5,6 +5,7 @@ module Palmade::PuppetMaster
         :count => 1,
         :nap_time => 1,
         :proc_tag => nil,
+        :disable_workloop => false,
         :before_fork => nil,
         :after_fork => nil }
 
