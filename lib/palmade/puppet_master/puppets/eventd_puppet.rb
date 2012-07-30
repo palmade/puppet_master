@@ -46,6 +46,11 @@ module Palmade::PuppetMaster
       def first_tick
         #do nothing
       end
+
+      def disable_workloop!
+        @options[:disable_workloop] = true
+      end
+
       protected
 
       def work_work(w)
