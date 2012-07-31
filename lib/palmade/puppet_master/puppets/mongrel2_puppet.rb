@@ -44,9 +44,11 @@ module Palmade::PuppetMaster
       end
 
       def stop_work_loop(worker)
-        @backend.stop
-        worker.stop!
-        EventMachine.stop_event_loop if EventMachine.reactor_running?
+        EM.next_tick do
+          @backend.stop
+          worker.stop!
+          EventMachine.stop
+        end
       end
 
       protected

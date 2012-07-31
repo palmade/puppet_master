@@ -33,8 +33,10 @@ module Palmade::PuppetMaster
       end
 
       def stop_work_loop(worker)
-        worker.stop!
-        EventMachine.stop_event_loop if EventMachine.reactor_running?
+        EM.next_tick do
+          worker.stop!
+          EventMachine.stop
+        end
       end
 
       def workloop_disabled?

@@ -135,18 +135,10 @@ module Palmade::PuppetMaster
       end
 
       def stop_work_loop(worker, now = false)
-        unless @idle_timer.nil?
-          EventMachine.cancel_timer(@idle_timer)
-          @idle_timer = nil
+        EM.next_tick do
+          now ? @thin.backend.stop! : @thin.backend.stop
+          worker.stop!
         end
-
-        if now
-          @thin.backend.stop!
-        else
-          @thin.backend.stop
-        end
-
-        worker.stop!
       end
 
       def start!
