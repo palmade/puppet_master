@@ -80,6 +80,16 @@ module Palmade::PuppetMaster
     end
 
     def alive!
+      # 1.8.x's ctime only has a precision of up to a second and we need a
+      # precision of up to a nanosecond. We sleep for 1 second to
+      # compensate. This is only needed for the first notification.
+      #
+      # Succeeding notifications don't matter since the timeout would be at
+      # least a second.
+      if !checked_in? && RUBY_VERSION =~ /^1\.8/
+        sleep 1
+      end
+
       @tmp.chmod(@m = 0 == @m ? 1 : 0)
     end
 
