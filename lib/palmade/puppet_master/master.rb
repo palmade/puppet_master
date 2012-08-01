@@ -284,7 +284,7 @@ module Palmade::PuppetMaster
         io = Socket.for_fd(fd.to_i)
         Palmade::PuppetMaster::SocketHelper.set_server_sockopt(io)
         IO_PURGATORY << io
-        logger.info "inherited addr=#{Socket.unpack_sockaddr_in(io.getsockname)} fd=#{fd}"
+        logger.info "inherited addr=#{format_sockaddr_in(io.getsockname)} fd=#{fd}"
         io = Palmade::PuppetMaster::SocketHelper.server_cast(io)
 
         lk = nil if lk.empty?
@@ -507,6 +507,10 @@ module Palmade::PuppetMaster
       SELF_PIPE.each { |io| io.close rescue nil }
       SELF_PIPE.replace(IO.pipe)
       SELF_PIPE.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
+    end
+
+    def format_sockaddr_in(sock)
+      Socket.unpack_sockaddr_in(sock).reverse.join(':')
     end
   end
 end
