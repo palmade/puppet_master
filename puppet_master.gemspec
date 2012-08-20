@@ -3,7 +3,7 @@ $:.push File.expand_path("../lib", __FILE__)
 
 Gem::Specification.new do |s|
   s.name        = 'puppet_master'
-  s.version     = '0.2.1'
+  s.version     = '0.3.0'
   s.authors     = ['Palmade']
   s.homepage    = 'http://github.com/palmade/puppet_master'
   s.summary     = 'Master of Puppets'
