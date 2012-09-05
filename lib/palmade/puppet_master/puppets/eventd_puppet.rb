@@ -15,6 +15,8 @@ module Palmade::PuppetMaster
         EventMachine.run do
           EventMachine.next_tick { first_tick }
           # do some work
+          worker.alive! if worker.ok?
+
           unless workloop_disabled?
             if block_given?
               yield(self, worker)
@@ -57,7 +59,6 @@ module Palmade::PuppetMaster
         if !w.ok?
           stop_work_loop(w)
         else
-          w.alive!
           perform_work(w)
 
           if w.ok?
