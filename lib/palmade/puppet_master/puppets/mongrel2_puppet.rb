@@ -34,6 +34,7 @@ module Palmade::PuppetMaster
         EventMachine.run do
           @backend.start
 
+          notify_alive!(worker)
           @idle_timer = EventMachine.add_timer(@options[:idle_time]) { idle_time(worker) }
         end
         worker.stop!
