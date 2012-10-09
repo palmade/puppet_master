@@ -8,15 +8,16 @@ module Palmade::PuppetMaster
 
       AsyncResponse = [-1, {}, []].freeze
 
-      def initialize(app, response_sock)
-        @app = app
+      def initialize(app, response_sock, chroot)
+        @app           = app
         @response_sock = response_sock
+        @chroot        = chroot
       end
 
       def on_readable(socket, parts)
         msg = parts.map(&:copy_out_string).join
 
-        @request = msg.nil? ? nil : Request.parse(msg)
+        @request = msg.nil? ? nil : Request.parse(msg, @chroot)
         process unless (@request.nil? && @request.disconnect?)
       end
 

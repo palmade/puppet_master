@@ -7,6 +7,7 @@ module Palmade::PuppetMaster
       def initialize(app, options)
         @app = app
         @uuid, @sub, @pub = options['uuid'], options['recv'], options['send']
+        @chroot = options['chroot']
       end
 
       def start
@@ -28,7 +29,7 @@ module Palmade::PuppetMaster
         @resp.setsockopt(ZMQ::IDENTITY, @uuid)
 
         # Connect to receive requests
-        @reqs = CTX.socket(ZMQ::PULL, Connection.new(@app, @resp))
+        @reqs = CTX.socket(ZMQ::PULL, Connection.new(@app, @resp, @chroot))
         @reqs.connect(@sub)
       end
 

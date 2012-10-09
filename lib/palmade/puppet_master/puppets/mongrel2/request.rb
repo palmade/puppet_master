@@ -6,13 +6,13 @@ module Palmade::PuppetMaster
       attr_reader :env
 
       class << self
-        def parse(msg)
+        def parse(msg, chroot)
           uuid, conn_id, path, rest = msg.split(' ', 4)
           json_headers, rest        = parse_netstring(rest)
           body, _                   = parse_netstring(rest)
           headers                   = Yajl::Parser.parse(json_headers)
 
-          new(uuid, conn_id, path, headers, body)
+          new(uuid, conn_id, path, headers, body, chroot)
         end
 
         def parse_netstring(ns)
@@ -23,12 +23,13 @@ module Palmade::PuppetMaster
         end
       end
 
-      def initialize(uuid, conn_id, path, headers, body)
+      def initialize(uuid, conn_id, path, headers, body, chroot)
         @uuid, @conn_id, @path, @headers = uuid, conn_id, path, headers
 
-        @body = process_body body
+        @chroot = chroot
+        @body   = process_body body
 
-        @data = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
+        @data   = headers['METHOD'] == 'JSON' ? Yajl::Parser.parse(body) : {}
 
         initialize_env
       end
@@ -104,7 +105,7 @@ module Palmade::PuppetMaster
 
       def process_body(body)
         if path = @headers['x-mongrel2-upload-done']
-          File.open(path, 'rb')
+          File.open(File.join(@chroot, path), 'rb')
         else
           StringIO.new(body).tap do |b|
             b.set_encoding(Encoding::ASCII_8BIT) if b.respond_to?(:set_encoding)
