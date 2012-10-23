@@ -14,11 +14,12 @@ module Palmade::PuppetMaster
         @chroot        = chroot
       end
 
-      def on_readable(socket, parts)
-        msg = parts.map(&:copy_out_string).join
-
-        @request = msg.nil? ? nil : Request.parse(msg, @chroot)
-        process unless (@request.nil? && @request.disconnect?)
+      def on_readable(socket, messages)
+        messages.each do |msg|
+          @request = msg.nil? ? nil : Request.parse(msg.copy_out_string, @chroot)
+          next if @request.nil? || @request.disconnect?
+          process
+        end
       end
 
       def process
