@@ -98,7 +98,7 @@ module Palmade::PuppetMaster
         expected = @headers['x-mongrel2-upload-start']
         uploaded = @headers['x-mongrel2-upload-done']
 
-        raise "Got wrong target file. Expected #{expected} but received #{uploaded}"
+        raise "Got wrong target file. Expected #{expected} but received #{uploaded}" unless expected == uploaded
       end
 
       protected
