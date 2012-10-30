@@ -19,14 +19,16 @@ module Palmade::PuppetMaster
         Palmade::PuppetMaster::Dependencies.require_zeromq
       end
 
+      def after_fork(w)
+        @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
+      end
+
       def work_loop(worker, ret = nil, &block)
         master_logger.warn "mongrel2 worker #{worker.proc_tag} started: #{$$}"
 
         [ :INT ].each { |sig| trap(sig) { } } # do nothing
         [ :QUIT ].each { |sig| trap(sig) { stop_work_loop(worker) } } # graceful shutdown
         [ :TERM, :KILL ].each { |sig| trap(sig) { exit!(0) } } # instant #shutdown
-
-        @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
 
         EventMachine.epoll
         EventMachine.kqueue
