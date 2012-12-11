@@ -20,7 +20,11 @@ module Palmade::PuppetMaster
       end
 
       def after_fork(w)
+        # Load backend first before super so that super.after_fork could have
+        # access to the backend and vice versa (e.g. monkey patching)
         @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
+
+        super(w)
       end
 
       def work_loop(worker, ret = nil, &block)
