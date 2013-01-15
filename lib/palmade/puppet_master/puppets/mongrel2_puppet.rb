@@ -17,14 +17,14 @@ module Palmade::PuppetMaster
         Palmade::PuppetMaster::Dependencies.require_yajl
         Palmade::PuppetMaster::Dependencies.require_rack
         Palmade::PuppetMaster::Dependencies.require_zeromq
+
+        @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
       end
 
       def after_fork(w)
-        # Load backend first before super so that super.after_fork could have
-        # access to the backend and vice versa (e.g. monkey patching)
-        @backend = Mongrel2::Backend.new(rack_application, @adapter_options[:mongrel2])
-
         super(w)
+
+        @backend.initialize_context
       end
 
       def work_loop(worker, ret = nil, &block)

@@ -2,12 +2,14 @@ module Palmade::PuppetMaster
   module Puppets::Mongrel2
     class Backend
 
-      CTX = EM::ZeroMQ::Context.new(1)
-
       def initialize(app, options)
         @app = app
         @uuid, @sub, @pub = options['uuid'], options['recv'], options['send']
         @chroot = options['chroot']
+      end
+
+      def initialize_context
+        Palmade::PuppetMaster::Puppets::Mongrel2::Backend.const_set(:CTX, EM::ZeroMQ::Context.new(1))
       end
 
       def start
