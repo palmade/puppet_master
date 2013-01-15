@@ -19,6 +19,7 @@ module Palmade::PuppetMaster
           @request = msg.nil? ? nil : Request.parse(msg.copy_out_string, @chroot)
           next if @request.nil? || @request.disconnect?
           process
+          msg.close
         end
       end
 
