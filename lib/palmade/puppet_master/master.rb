@@ -191,8 +191,7 @@ module Palmade::PuppetMaster
     end
 
     def set_proc_name(tag)
-      pn = ([ @proc_name, tag ]).concat(@proc_argv).join(' ') + "\0"
-      $0 = pn
+      $0 = [@proc_name, tag].concat(@proc_argv).join(' ')
     end
 
     def reopen_logger
