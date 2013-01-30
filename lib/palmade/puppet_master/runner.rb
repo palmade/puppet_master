@@ -7,16 +7,17 @@ module Palmade::PuppetMaster
     attr_reader :start_ctx
 
     DEFAULT_OPTIONS = {
-      :listen => [ ],
-      :debug => false,
-      :pid_file => "tmp/pids/#{$safe_program_name}.pid".freeze,
-      :log_file => "log/#{$safe_program_name}.log".freeze,
-      :timeout => 30,
-      :daemonize => nil,
+      :listen         => [],
+      :debug          => false,
+      :pid_file       => "tmp/pids/#{$safe_program_name}.pid".freeze,
+      :control_port   => "tmp/sock/#{$safe_program_name}.sock".freeze,
+      :log_file       => "log/#{$safe_program_name}.log".freeze,
+      :timeout        => 30,
+      :daemonize      => nil,
       :master_options => { },
-      :tail => true,
-      :configurator => nil,
-      :epoll => false
+      :tail           => true,
+      :configurator   => nil,
+      :epoll          => false
     }
 
     DEFAULT_CONFIG_FILE = "config/puppet_master.yml".freeze
@@ -34,7 +35,7 @@ module Palmade::PuppetMaster
     # decr - remove one less main worker
     # status - check if the status of the main master
     # replace - replace running with a new instance
-    COMMANDS = %w{ start stop restart status hold resume reload incr decr replace }.freeze
+    COMMANDS = %w{ start stop restart status stats hold resume reload incr decr replace }.freeze
 
     def self.default_config_file; DEFAULT_CONFIG_FILE; end
     def self.default_configurator_file; DEFAULT_CONFIGURATOR_FILE; end

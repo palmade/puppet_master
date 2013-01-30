@@ -50,6 +50,18 @@ module Palmade::PuppetMaster
       end
     end
 
+    # Last ping time in float
+    #
+    def last_ping
+      Time.now - @tmp.stat.ctime
+    end
+
+    # Uptime in float
+    #
+    def uptime
+      Time.now - @initialized_time
+    end
+
     def fork
       @puppet.before_fork(self)
       logger.warn "forking worker #{proc_tag}"

@@ -72,13 +72,11 @@ module Palmade::PuppetMaster
       return address unless String === address
 
       sock = nil
-      if address[0] == ?/
+      if address =~ /^(\d+\.\d+\.\d+\.\d+):(\d+)$/
+        sock = TCPServer.new($1, $2.to_i)
+      else
         if File.exist?(address)
           if File.socket?(address)
-            #if self.respond_to?(:logger)
-            #  logger.info "unlinking existing socket=#{address}"
-            #end
-
             File.unlink(address)
           else
             raise ArgumentError, "socket=#{address} specified but it is not a socket!"
@@ -91,10 +89,6 @@ module Palmade::PuppetMaster
         ensure
           File.umask(old_umask)
         end
-      elsif address =~ /^(\d+\.\d+\.\d+\.\d+):(\d+)$/
-        sock = TCPServer.new($1, $2.to_i)
-      else
-        raise ArgumentError, "Don't know how to bind: #{address}"
       end
 
       set_server_sockopt(sock, opt) unless sock.nil?

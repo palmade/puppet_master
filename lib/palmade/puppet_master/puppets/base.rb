@@ -64,7 +64,7 @@ module Palmade::PuppetMaster
                      next
                    end
             stat.mode == 0100000 and next
-            (diff = (Time.now - stat.ctime)) <= @master.timeout and next
+            (diff = worker.last_ping) <= @master.timeout and next
 
             master_logger.error "worker=#{worker.nr} PID:#{wpid} timeout " +
             "(#{diff}s > #{@master.timeout}s), killing"

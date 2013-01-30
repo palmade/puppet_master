@@ -59,6 +59,8 @@ module Palmade::PuppetMaster
           @logger = Palmade::PuppetMaster.logger
         end
       end
+
+      @initialized_time = Time.now
     end
 
     def fork(handler, priority = false, &block)
@@ -67,6 +69,12 @@ module Palmade::PuppetMaster
       else
         forks.push([ handler, block ])
       end
+    end
+
+    # Uptime in float
+    #
+    def uptime
+      Time.now - @initialized_time
     end
 
     def perform_forks
@@ -131,6 +139,9 @@ module Palmade::PuppetMaster
 
       @pid = $$
       logger.warn "master started: #{@pid}"
+
+      start_control_port(self)
+
       if @proc_tag.nil?
         set_proc_name "master"
       else
@@ -165,6 +176,8 @@ module Palmade::PuppetMaster
       @stopped = :UNJOIN
 
       clear_traps(false)
+      @control_port = nil
+
       trap(:CHLD, 'DEFAULT')
       @sig_queue.clear
 
@@ -283,7 +296,7 @@ module Palmade::PuppetMaster
         io = Socket.for_fd(fd.to_i)
         Palmade::PuppetMaster::SocketHelper.set_server_sockopt(io)
         IO_PURGATORY << io
-        logger.info "inherited addr=#{format_sockaddr_in(io.getsockname)} fd=#{fd}"
+        logger.info "inherited addr=#{format_sockaddr(io.getsockname)} fd=#{fd}"
         io = Palmade::PuppetMaster::SocketHelper.server_cast(io)
 
         lk = nil if lk.empty?
@@ -310,6 +323,13 @@ module Palmade::PuppetMaster
           raise ArgumentError, "Unsupported listener specs: #{@options[:listen].inspect}"
         end
       end
+
+      @listeners['control_port'] = [UNIXServer.new(@options.fetch(:control_port))]
+      @listeners
+    end
+
+    def add_control_port_listener
+
     end
 
     def create_listener(lspec)
@@ -322,7 +342,6 @@ module Palmade::PuppetMaster
         ls.each do |sock|
           sock.close rescue nil
         end
-        ls.clear
       end
       @listeners.clear
     end
@@ -346,6 +365,8 @@ module Palmade::PuppetMaster
 
       # now, let's kill all our services
       kill_all_services(@stopped)
+
+      @control_port.stop unless @controller.reexec_pid
 
       # close listeners, if we have any?
       close_listeners!
@@ -444,6 +465,13 @@ module Palmade::PuppetMaster
       handler
     end
 
+    def start_control_port(master)
+      @control_port = ControlPort.new(:master => self,
+                                      :socket => @listeners['control_port'][0],
+                                      :logger => @logger
+                                     )
+    end
+
     def reexec(commit_matricide = false)
       controller.reexec(commit_matricide, listeners)
       set_proc_name "master (old) [#{@proc_tag}]"
@@ -508,8 +536,12 @@ module Palmade::PuppetMaster
       SELF_PIPE.each { |io| io.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC) }
     end
 
-    def format_sockaddr_in(sock)
-      Socket.unpack_sockaddr_in(sock).reverse.join(':')
+    def format_sockaddr(sock)
+      begin
+        Socket.unpack_sockaddr_in(sock).reverse.join(':')
+      rescue ArgumentError
+        Socket.unpack_sockaddr_un(sock)
+      end
     end
   end
 end

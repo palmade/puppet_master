@@ -3,6 +3,7 @@ module Palmade::PuppetMaster
     class PidFileExist < RuntimeError; end
 
     attr_reader :pid_file
+    attr_reader :reexec_pid
     attr_writer :runner
 
     def initialize(proc_name, proc_argv, command, arguments, config)
@@ -32,6 +33,8 @@ module Palmade::PuppetMaster
         restart
       when "status"
         status
+      when "stats"
+        stats
       end
     end
 
@@ -54,6 +57,14 @@ module Palmade::PuppetMaster
           warn "#{$0} is not running"
           remove_stale_pid_file
         end
+      end
+    end
+
+    def stats
+      UNIXSocket.open(@config[:control_port]) do |c|
+        c.write "!stats\n"
+        c.write "!quit\n"
+        puts $_ while c.gets
       end
     end
 
@@ -106,6 +117,10 @@ module Palmade::PuppetMaster
 
       unless @config[:listen].nil?
         master_options[:listen] = @config[:listen]
+      end
+
+      unless @config[:control_port].nil?
+        master_options[:control_port] = @config[:control_port]
       end
 
       master_options[:proc_name] = @proc_name

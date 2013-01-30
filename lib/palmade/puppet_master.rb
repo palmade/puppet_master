@@ -32,6 +32,7 @@ module Palmade
     autoload :Worker, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/worker')
 
     # auxilliary services
+    autoload :ControlPort, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/control_port')
     autoload :Service, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service')
     autoload :ServiceRedis, File.join(PUPPET_MASTER_LIB_DIR, 'puppet_master/service_redis')
 
