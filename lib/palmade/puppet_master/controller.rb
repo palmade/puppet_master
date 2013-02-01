@@ -61,10 +61,12 @@ module Palmade::PuppetMaster
     end
 
     def stats
-      UNIXSocket.open(@config[:control_port]) do |c|
-        c.write "!stats\n"
-        c.write "!quit\n"
-        puts $_ while c.gets
+      if verify_pid_file!
+        if running?
+          print_stats_from_control_port
+        else
+          abort "aborted, not running"
+        end
       end
     end
 
@@ -223,6 +225,14 @@ module Palmade::PuppetMaster
     end
 
     protected
+    def print_stats_from_control_port
+      UNIXSocket.open(@config[:control_port]) do |c|
+        c.write "!stats\n"
+        c.write "!quit\n"
+        puts $_ while c.gets
+      end
+    end
+
     def verify_pid_file!
       unless @pid_file
         warn "Checking pid_file, but i couldn't figure out where the pid file is."
