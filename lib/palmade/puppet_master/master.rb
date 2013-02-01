@@ -324,7 +324,7 @@ module Palmade::PuppetMaster
         end
       end
 
-      @listeners['control_port'] = [UNIXServer.new(@options.fetch(:control_port))]
+      @listeners['control_port'] = [SocketHelper.listen(@options.fetch(:control_port))]
       @listeners
     end
 
