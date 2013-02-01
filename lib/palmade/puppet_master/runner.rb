@@ -10,7 +10,7 @@ module Palmade::PuppetMaster
       :listen         => [],
       :debug          => false,
       :pid_file       => "tmp/pids/#{$safe_program_name}.pid".freeze,
-      :control_port   => "tmp/sock/#{$safe_program_name}.sock".freeze,
+      :control_port   => "tmp/socks/#{$safe_program_name}.sock".freeze,
       :log_file       => "log/#{$safe_program_name}.log".freeze,
       :timeout        => 30,
       :daemonize      => nil,

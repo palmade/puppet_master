@@ -82,6 +82,8 @@ module Palmade::PuppetMaster
     def start
       @config[:daemonize] = true if @config[:daemonize].nil?
 
+      create_required_directories
+
       # let's lock in our pid file
       # and also check if another one like us exists, already!
       if @config[:daemonize]
@@ -310,7 +312,6 @@ module Palmade::PuppetMaster
       if verify_pid_file!
         warn ">> Writing PID to #{@pid_file}"
 
-        FileUtils.mkdir_p File.dirname(@pid_file)
         File.open(@pid_file,"w") { |f| f.write(Process.pid) }
         File.chmod(0644, @pid_file)
       end
@@ -329,6 +330,11 @@ module Palmade::PuppetMaster
           end
         end
       end
+    end
+
+    def create_required_directories
+      FileUtils.mkdir_p File.dirname(@pid_file)
+      FileUtils.mkdir_p File.dirname(@config[:control_port])
     end
   end
 end
