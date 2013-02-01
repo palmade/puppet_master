@@ -64,9 +64,11 @@ module Palmade::PuppetMaster
       master_pid  = @master.pid
       worker_pids = workers.map(&:keys).join(" ")
 
-      "#{format_master_info}\n" \
-        "workers #{worker_pids}\n" \
-        "#{format_workers_info}\n"
+      stats = "#{format_master_info}\n"
+      stats << "workers #{worker_pids}\n" \
+                "#{format_workers_info}\n" unless worker_pids.empty?
+
+      stats
     end
 
     def format_master_info
