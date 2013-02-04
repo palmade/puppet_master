@@ -1,8 +1,5 @@
 module Palmade::PuppetMaster
   class Controller
-    class PidFileExist < RuntimeError; end
-
-    attr_reader :pid_file
     attr_reader :reexec_pid
     attr_writer :runner
 
@@ -10,14 +7,12 @@ module Palmade::PuppetMaster
       @proc_name = proc_name
       @proc_argv = proc_argv
 
-      @command = command
+      @command   = command
       @arguments = arguments
-
-      @config = config
-      @configurator = nil
+      @config    = config
 
       @logger   = Logger.new($stderr)
-      @pid_file = @config[:pid_file]
+      @pid_file = PidFile.new(@config[:pid_file])
 
       @kill_timeout = 60
       @reexec_pid   = nil
@@ -39,123 +34,77 @@ module Palmade::PuppetMaster
     end
 
     def stop
-      if verify_pid_file!
-        if running?
-          warn "Sending QUIT to #{pid}, #{@kill_timeout} timeout"
-          Palmade::PuppetMaster::Utils.pidf_kill(@pid_file, @kill_timeout)
-        else
-          abort "aborted, not running"
-        end
+      running_or_abort do
+        warn "Sending QUIT to #{@pid_file.pid}, #{@kill_timeout} timeout"
+        @pid_file.terminate(@kill_timeout)
       end
     end
 
     def status
-      if verify_pid_file!
-        if running?
-          warn "#{$0} is running with pid #{pid}"
-        else
-          warn "#{$0} is not running"
-          remove_stale_pid_file
-        end
+      running_or_abort do
+        warn "#{$0} is running with pid #{@pid_file.pid}"
       end
     end
 
     def stats
-      if verify_pid_file!
-        if running?
-          print_stats_from_control_port
-        else
-          abort "aborted, not running"
-        end
+      running_or_abort do
+        print_stats_from_control_port
       end
     end
 
     def restart
-      if running?
-        warn "Sending USR1 to #{Palmade::PuppetMaster::Utils.pidf_read(@pid_file)}"
-        Palmade::PuppetMaster::Utils.pidf_send_signal(:USR1, @pid_file)
-      else
-        abort "aborted, nothing to restart"
+      running_or_abort do
+        warn "Sending USR1 to #{@pid_file.pid}"
+        @pid_file.kill(:USR1)
       end
     end
 
     def start
+      abort "already running as #{@pid_file.pid}" if @pid_file.running?
+
       @config[:daemonize] = true if @config[:daemonize].nil?
 
       create_required_directories
 
-      # let's lock in our pid file
-      # and also check if another one like us exists, already!
       if @config[:daemonize]
-        remove_stale_pid_file
         daemonize
 
-        write_pid_file
-        at_exit do
-          remove_pid_file(false) if pid == $$ rescue nil
-        end
+        @pid_file.write
       end
 
-      # let's run the pre-start code!
-      unless @config[:pre_start].nil?
-        case @config[:pre_start]
-        when String
-          require @config[:pre_start]
-        when Proc
-          @config[:pre_start].call
-        else
-          raise ArgumentError, "Unsupported :pre_start option, got: #{@config[:pre_start].class}"
-        end
-      end
+      run_pre_start
 
-      # let's create our logger, if any
-      if Palmade::PuppetMaster.logger.nil?
-        Palmade::PuppetMaster.logger = @logger
-      end
+      Palmade::PuppetMaster.logger ||= @logger
 
-      # let's run our master process
       master_options = Palmade::PuppetMaster::Utils.symbolize_keys(@config[:master_options])
-      unless @config[:timeout].nil?
-        master_options[:timeout] = @config[:timeout]
-      end
 
-      unless @config[:listen].nil?
-        master_options[:listen] = @config[:listen]
-      end
+      # pass non nil config options to master
+      [:timeout, :listen, :control_port].each do |key|
+        next if @config[key].nil?
 
-      unless @config[:control_port].nil?
-        master_options[:control_port] = @config[:control_port]
+        master_options[key] = @config[key]
       end
 
       master_options[:proc_name] = @proc_name
       master_options[:proc_argv] = @proc_argv
       master_options[:epoll]     = @config[:epoll]
 
-      Palmade::PuppetMaster.run!(master_options) do |m|
-        m.controller = self
+      # let's run our master process
+      Palmade::PuppetMaster.run!(master_options,
+                                 &method(:initialize_master))
+    end
 
-        m.on_callback(:on_reap_dead_children, &method(:restore_pid_file))
+    def run_pre_start
+      return if @config[:pre_start].nil?
 
-        if ENV['PUPPET_MASTER_COMMIT_MATRICIDE']
-          m.on_callback_once(:on_all_workers_checked_in, &method(:kill_old_master))
-        end
-
-        @configurator = nil
-
-        # configurator is a file name
-        case @config[:configurator]
-        when String
-          @configurator = Palmade::PuppetMaster::Configurator.configure(@config[:configurator], m, @config, self)
-        end
-
-        if !@config[:block].nil?
-          @config[:block].call(m, @configurator, @config, self)
-        elsif !@configurator.nil?
-          @configurator.call(:main)
-        end
+      case @config[:pre_start]
+      when String
+        require @config[:pre_start]
+      when Proc
+        @config[:pre_start].call
+      else
+        raise ArgumentError, "Unsupported :pre_start option, got: #{@config[:pre_start].class}"
       end
-    rescue PidFileExist => e
-      warn e.message
     end
 
     def restore_pid_file(wpid, status)
@@ -164,22 +113,16 @@ module Palmade::PuppetMaster
       @logger.error "reexec-ed() master died"
       @logger.info  "restoring pid file"
 
-      old_pid_file = @pid_file
-      @pid_file = old_pid_file.sub(/\.old$/, '')
+      @pid_file.path = @pid_file.path.sub(/\.old$/, '')
 
-      File.rename(old_pid_file, @pid_file)
       @reexec_pid = nil
     end
 
     def kill_old_master
       begin
-        old_pid_file = "#{@pid_file}.old"
-        old_pid      = Palmade::PuppetMaster::Utils.pidf_read(old_pid_file)
-
-        if Palmade::PuppetMaster::Utils.pidf_running?(old_pid_file)
-          @logger.warn "killing old master: #{old_pid}"
-          Palmade::PuppetMaster::Utils.pidf_kill(old_pid_file, @kill_timeout)
-        end
+        old_pid_file = PidFile.new(@pid_file.path + '.old')
+        @logger.warn "killing old master: #{old_pid_file.pid}"
+        old_pid_file.terminate(@kill_timeout)
       rescue Errno::ESRCH
         @logger.warn "old master not found."
       end
@@ -197,10 +140,7 @@ module Palmade::PuppetMaster
       ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = nil
 
       # make way for reexec's pid file
-      old_pid_file = @pid_file
-      @pid_file = "#{old_pid_file}.old"
-
-      File.rename(old_pid_file, @pid_file)
+      @pid_file.path = "#{@pid_file.path}.old"
 
       @reexec_pid = Kernel.fork do
         listener_fds = ''
@@ -216,7 +156,7 @@ module Palmade::PuppetMaster
         end
 
         ENV['PUPPET_MASTER_FD'] = listener_fds
-        ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = 'true' if commit_matricide
+        ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = commit_matricide.to_s
 
         Dir.chdir(@runner.start_ctx[:cwd])
         cmd = [ @runner.start_ctx[0] ].concat(@runner.start_ctx[:argv])
@@ -235,15 +175,6 @@ module Palmade::PuppetMaster
       end
     end
 
-    def verify_pid_file!
-      unless @pid_file
-        warn "Checking pid_file, but i couldn't figure out where the pid file is."
-        nil
-      else
-        @pid_file
-      end
-    end
-
     def reexeced?
       ENV['PUPPET_MASTER_FD']? true : false
     end
@@ -251,22 +182,18 @@ module Palmade::PuppetMaster
     def daemonize
       # let's disable any output, if we're daemonizing
       # and no log file is specified!
-      if @config[:log_file].nil?
+      case @config[:log_file]
+      when nil
         warn "We are daemonizing... but no log file is specified, redirecting all output to /dev/null."
         @config[:log_file] = '/dev/null'
-      end
-      if @config[:log_file] =~ /^syslog:/
+      when /^syslog:/
         @logger = Syslogger.new
       else
         @logger = Logger.new(@config[:log_file])
       end
 
       unless reexeced?
-        # double fork here, for some reason Daemonize also said
-        # we should do it! so i'm doing it.
         exit(0) if fork
-
-        # second fork to get off any remaining terminal
         sess_id = Process.setsid
         exit(0) if fork
       end
@@ -291,50 +218,120 @@ module Palmade::PuppetMaster
       end
     end
 
+    private
+
+    def create_required_directories
+      FileUtils.mkdir_p File.dirname(@config[:control_port])
+    end
+
+    def running_or_abort(&block)
+      if @pid_file.running?
+        block.call
+      else
+        abort "aborted, not running"
+      end
+    end
+
+    def initialize_master(master)
+      master.controller = self
+      master.on_callback(:on_reap_dead_children, &method(:restore_pid_file))
+
+      if ENV['PUPPET_MASTER_COMMIT_MATRICIDE']
+        master.on_callback_once(:on_all_workers_checked_in, &method(:kill_old_master))
+      end
+
+      configurator =
+        case @config[:configurator]
+        when String
+          Palmade::PuppetMaster::Configurator.configure(@config[:configurator], master, @config, self)
+        else
+          nil
+        end
+
+      if @config[:block].respond_to?(:call)
+        @config[:block].call(master, configurator, @config, self)
+      elsif configurator.respond_to?(:call)
+        configurator.call(:main)
+      end
+    end
+  end
+
+  class PidFile
+    attr_reader :path
+
+    def initialize(path)
+      @path = path
+    end
+
+    def path=(dest)
+      File.rename(path, dest)
+      @path = dest
+    end
+
     def pid
-      Palmade::PuppetMaster::Utils.pidf_read(@pid_file) if verify_pid_file!
+      @pid ||= File.read(@path).to_i
+    rescue ENOENT
+      abort "no pid file"
     end
 
     def running?
-      Palmade::PuppetMaster::Utils.pidf_running?(@pid_file) if verify_pid_file!
+      return false unless exists?
+      Process.getpgid(pid) != -1
+    rescue Errno::ESRCH
+      false
     end
 
-    def remove_pid_file(noisy = true)
-      if verify_pid_file! && File.exists?(@pid_file)
-        warn ">> Removing PID file #{@pid_file}" rescue nil
-        File.delete(@pid_file)
-      end
-    rescue Exception
-      raise if noisy
-    end
+    def write
+      remove_stale
 
-    def write_pid_file
-      if verify_pid_file!
-        warn ">> Writing PID to #{@pid_file}"
+      warn "Writing pid to #{@path}"
+      FileUtils.mkdir_p File.dirname(path)
+      File.open(@path,"w") { |f| f.write(Process.pid) }
+      File.chmod(0644, @path)
 
-        File.open(@pid_file,"w") { |f| f.write(Process.pid) }
-        File.chmod(0644, @pid_file)
+      at_exit do
+        cleanup if pid == $$ rescue nil
       end
     end
 
-    # If PID file is stale, remove it.
-    def remove_stale_pid_file
-      if verify_pid_file!
-        if File.exist?(@pid_file)
-          if running?
-            raise PidFileExist, "#{@pid_file} already exists, seems like it's already running (process ID: #{pid}). " +
-              "Stop the process or delete #{@pid_file}."
-          else
-            warn ">> Deleting stale PID file #{@pid_file}"
-            remove_pid_file
-          end
-        end
-      end
+    def kill(signal)
+      exists? and Process.kill(signal, pid)
     end
 
-    def create_required_directories
-      FileUtils.mkdir_p File.dirname(@pid_file)
-      FileUtils.mkdir_p File.dirname(@config[:control_port])
+    def cleanup
+      return unless exists?
+
+      warn "Removing pid file: #{path}"
+      File.delete(@path)
+    end
+
+    def terminate(timeout = 30)
+      signal = timeout == 0 ? :INT : :QUIT
+
+      Process.kill(signal, pid)
+
+      Timeout.timeout(timeout) do
+        sleep 0.1 while running?
+      end
+    rescue Timeout::Error
+      warn "Timeout reached. Sending KILL."
+      Process.kill(:KILL, pid)
+    end
+
+    def exists?
+      File.exist?(@path)
+    end
+
+    def stale?
+      exists? and running?
+    end
+
+    private
+    def remove_stale
+      return unless stale?
+
+      warn "Deleting stale pid file: #{@path}"
+      File.delete(@path)
     end
   end
 end
