@@ -120,6 +120,26 @@ module Palmade::PuppetMaster
           end
 
           it { should be_a Master }
+
+          context "control port was specified" do
+            let(:control_port) { File.join(tmp_dir, 'socks', 'test.sock') }
+            let(:master) do
+              Master.new(:control_port => control_port)
+            end
+
+            it "should start the control port" do
+              real_server = UNIXServer.new(control_port)
+              UNIXServer.should_receive(:new).with(control_port) { real_server }
+              subject
+            end
+          end
+
+          context "control port was not specified" do
+            it "should start the control port" do
+              UNIXServer.should_not_receive(:new)
+              subject
+            end
+          end
         end
       end
     end

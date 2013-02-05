@@ -12,6 +12,24 @@ Dir.mkdir(log_dir) unless Dir.exists? log_dir
 log_file = File.join(log_dir, "test-#{$$}.log")
 logger = Logger.new(log_file)
 
+module Helpers
+  def spec_root
+    File.join(File.expand_path('..', __FILE__))
+  end
+
+  def tmp_dir
+    File.join(spec_root, 'tmp')
+  end
+
+  def socket_dir
+    File.join(tmp_dir, 'socks')
+  end
+
+  def pid_dir
+    File.join(tmp_dir, 'pids')
+  end
+end
+
 module Matchers
   class ValidateWithLint
     def matches?(request)
@@ -43,4 +61,5 @@ RSpec.configure do |config|
   end
 
   config.include Matchers
+  config.include Helpers
 end
