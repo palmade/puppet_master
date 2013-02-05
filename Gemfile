@@ -4,10 +4,10 @@ source "http://rubygems.org"
 gemspec
 
 group :test do
-  gem 'eventmachine', '>= 1.0.0.beta.4'
+  gem 'eventmachine', '1.0.0'
   gem 'rack'
   gem 'thin'
-  gem 'em-zeromq'
+  gem 'em-zeromq', '= 0.3.0'
   gem 'ffi-rzmq'
   gem 'ffi'
   gem 'yajl-ruby'

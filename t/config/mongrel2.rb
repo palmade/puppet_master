@@ -38,7 +38,10 @@ common do |m, config, controller|
 
   m.proc_tag = proc_tag
   fam.mongrel2_puppet(:proc_tag => proc_tag,
-                  :adapter => :rails,
+                  :adapter => MockAdapter,
                   :adapter_options => config.symbolize_keys,
                   :count => count)
+end
+
+module MockAdapter
 end

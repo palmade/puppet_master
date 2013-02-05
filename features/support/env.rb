@@ -62,7 +62,7 @@ module Utils
       end
 
     IO.popen(['ruby', script_cmd, "-s", "#{worker_count}", "-r",
-              "#{configurator}", "-c", "#{t_dir}", "-C", "#{File.join(config_dir, 'appctl.yml')}",
+              "#{configurator}", "-c", "#{t_dir}", "-C", config,
               :err => [:child, :out]])
   end
 
