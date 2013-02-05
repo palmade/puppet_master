@@ -35,57 +35,5 @@ module Palmade::PuppetMaster
       false
     end
 
-    def self.pidf_running?(pid_file)
-      if pid = pidf_read(pid_file)
-        process_running?(pid) ? pid : false
-      else
-        nil
-      end
-    end
-
-    def self.pidf_read(pid_file)
-      if File.exists?(pid_file) && File.file?(pid_file) && pid = File.read(pid_file)
-        pid.to_i
-      else
-        nil
-      end
-    end
-
-    def self.pidf_kill(pid_file, timeout = 30)
-      if timeout == 0
-        pidf_send_signal('INT', pid_file)
-      else
-        pidf_send_signal('QUIT', pid_file)
-      end
-
-      Timeout.timeout(timeout) do
-        sleep 0.1 while pidf_running?(pid_file)
-      end
-    rescue Timeout::Error
-      pidf_force_kill pid_file
-    rescue Interrupt
-      pidf_force_kill pid_file
-    rescue Errno::ESRCH # No such process
-      pidf_force_kill pid_file
-    end
-
-    def self.pidf_send_signal(signal, pid_file)
-      if pid = pidf_read(pid_file)
-        Process.kill(signal, pid)
-        pid
-      else
-        nil
-      end
-    end
-
-    def self.pidf_force_kill(pid_file)
-      if pid = pidf_read(pid_file)
-        Process.kill("KILL", pid)
-        File.delete(pid_file) if File.exist?(pid_file)
-        pid
-      else
-        nil
-      end
-    end
   end
 end
