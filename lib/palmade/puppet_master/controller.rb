@@ -111,18 +111,21 @@ module Palmade::PuppetMaster
       return unless wpid == @reexec_pid
 
       @logger.error "reexec-ed() master died"
-      @logger.info  "restoring pid file"
-
-      @pid_file.path = @pid_file.path.sub(/\.old$/, '')
-
       @reexec_pid = nil
     end
 
-    def kill_old_master
+    def kill_and_replace_old_master
       begin
-        old_pid_file = PidFile.new(@pid_file.path + '.old')
+        # the rexec'ed master's pid file basename is just the configured
+        # pid_file filename prefixed with ".reexec"
+        configured_pid_file_path = @pid_file.path.sub(/\.reexec\.pid$/, '.pid')
+
+        old_pid_file = PidFile.new(configured_pid_file_path)
         @logger.warn "killing old master: #{old_pid_file.pid}"
         old_pid_file.terminate(@kill_timeout)
+
+        @logger.warn "moving pid file to #{configured_pid_file_path}"
+        @pid_file.path = configured_pid_file_path
       rescue Errno::ESRCH
         @logger.warn "old master not found."
       end
@@ -138,9 +141,6 @@ module Palmade::PuppetMaster
 
       # clear env in advance
       ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = nil
-
-      # make way for reexec's pid file
-      @pid_file.path = "#{@pid_file.path}.old"
 
       @reexec_pid = Kernel.fork do
         listener_fds = ''
@@ -158,8 +158,12 @@ module Palmade::PuppetMaster
         ENV['PUPPET_MASTER_FD'] = listener_fds
         ENV['PUPPET_MASTER_COMMIT_MATRICIDE'] = commit_matricide.to_s
 
+        # prefix pid_file basename with ".reexec"
+        reexec_pid_file_path = @pid_file.path.sub(/\.pid$/, '.reexec.pid')
+
         Dir.chdir(@runner.start_ctx[:cwd])
-        cmd = [ @runner.start_ctx[0] ].concat(@runner.start_ctx[:argv])
+        cmd = [@runner.start_ctx[0]].concat(@runner.start_ctx[:argv] +
+                                              ["-P", reexec_pid_file_path])
 
         @logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
         exec(*cmd)
@@ -237,7 +241,7 @@ module Palmade::PuppetMaster
       master.on_callback(:on_reap_dead_children, &method(:restore_pid_file))
 
       if ENV['PUPPET_MASTER_COMMIT_MATRICIDE']
-        master.on_callback_once(:on_all_workers_checked_in, &method(:kill_old_master))
+        master.on_callback_once(:on_all_workers_checked_in, &method(:kill_and_replace_old_master))
       end
 
       configurator =
