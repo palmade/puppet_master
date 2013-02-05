@@ -324,7 +324,12 @@ module Palmade::PuppetMaster
         end
       end
 
-      @listeners['control_port'] = [SocketHelper.listen(@options.fetch(:control_port))]
+      begin
+        @listeners['control_port'] = [SocketHelper.listen(@options.fetch(:control_port))]
+      rescue KeyError
+        @logger.warn "no control port specified. won't be creating a control port"
+      end
+
       @listeners
     end
 
@@ -466,6 +471,7 @@ module Palmade::PuppetMaster
     end
 
     def start_control_port(master)
+      return unless @listeners['control_port']
       @control_port = ControlPort.new(:master => self,
                                       :socket => @listeners['control_port'][0],
                                       :logger => @logger

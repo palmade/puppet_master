@@ -98,7 +98,7 @@ module Palmade::PuppetMaster
       context "no family specified" do
         it "should raise an error" do
           expect { master.start }.
-            to raise_error /Please specify the family of puppets/
+            to raise_error(/Please specify the family of puppets/)
         end
       end
 
@@ -108,7 +108,7 @@ module Palmade::PuppetMaster
         context "no main puppet specified" do
           it "should raise an error" do
             expect { master.start }.
-              to raise_error /Must specify a main puppet to run/
+              to raise_error(/Must specify a main puppet to run/)
           end
         end
 
