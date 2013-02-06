@@ -84,7 +84,7 @@ end
 
 Then /^it should spawn (\d+) worker(?:s)?$/ do |n|
   count = n.to_i
-  cmd   = "appctl master[cucumber-puppet_master.testing] start"
+  cmd   = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
 
   size = nil
   Timeout.timeout(30) do
@@ -100,12 +100,12 @@ Then /^it should spawn (\d+) worker(?:s)?$/ do |n|
 end
 
 When /^the master dies$/ do
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
   pid = get_pid(cmd) and terminate(pid) rescue Errno::ESRCH
 end
 
 When /^the master dies a tragic death$/ do
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
   pid = get_pid(cmd) and murder(pid) rescue Errno::ESRCH
 end
 
@@ -125,18 +125,18 @@ Then /^all workers should die within a minute$/ do
 end
 
 Given "there are no other instances running" do
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
   pid = get_pid(cmd) and terminate(pid) rescue Errno::ESRCH
 end
 
 Then /^it should run as a daemon$/ do
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
   get_tty(cmd).should eql '?'
 end
 
 
 Then /^the file "([^"]*)" should contain the pid$/ do |pid_file|
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
   pid = get_pid(cmd)
   step "the file \"#{pid_file}\" should contain \"#{pid}\""
 end

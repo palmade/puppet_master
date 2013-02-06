@@ -23,9 +23,8 @@ module Utils
   end
 
   def get_ps_info(cmd)
-    ps              = "ps -eo pid,tty,cmd"
-    cmd_pattern     = Regexp.escape(cmd)
-    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S)\s+' + cmd_pattern
+    ps              = "ps -o pid,tty,cmd -C ruby"
+    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S+)\s+' + cmd
 
     run_simple(unescape(ps))
 
@@ -38,7 +37,7 @@ module Utils
     pid = get_pid(cmd)
 
     ps              = "ps -o pid,tty,ppid,cmd --ppid #{pid}"
-    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S)\s+(?<ppid>\d+)\s+'
+    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S+)\s+(?<ppid>\d+)\s+'
 
     run_simple(unescape(ps))
     find_matches(output_from(ps), ps_line_pattern)
@@ -76,7 +75,7 @@ end
 World(Utils)
 
 After do |scenario|
-  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
   begin
     pid = get_pid(cmd) and terminate(pid)
   rescue RSpec::Expectations::ExpectationNotMetError
