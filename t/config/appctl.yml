@@ -3,12 +3,12 @@ listen:
 
 tail: false
 
-environment: development
+environment: testing
 
-tag: development
+tag: testing
 
-pid_file: tmp/pids/appctl.pid
+pid_file: t/tmp/pids/appctl.pid
 
-log_file: log/appctl.log
+log_file: t/log/appctl.log
 
 epoll: true

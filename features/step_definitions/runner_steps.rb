@@ -31,3 +31,20 @@ Then /^all workers should die within a minute$/ do
     (Time.now - t0).should be < 60
   end
 end
+
+Given "there are no other instances running" do
+  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  pid = get_pid(cmd) and terminate(pid)
+end
+
+Then /^it should run as a daemon$/ do
+  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  get_tty(cmd).should eql '?'
+end
+
+
+Then /^the file "([^"]*)" should contain the pid$/ do |pid_file|
+  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  pid = get_pid(cmd)
+  step "the file \"#{pid_file}\" should contain \"#{pid}\""
+end

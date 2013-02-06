@@ -244,7 +244,13 @@ module Palmade::PuppetMaster
       else
         argv = ARGV + ['X' * 64]
         cmd  = [$0].concat(argv)
-        exec(*cmd)
+        begin
+          exec(*cmd)
+        rescue Errno::EACCES
+          raise if cmd =~ /^ruby /
+          cmd = cmd.unshift 'ruby'
+          retry
+        end
       end
     end
 

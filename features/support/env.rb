@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'bundler/setup'
+require 'aruba/cucumber'
 
 require 'palmade/puppet_master'
 
@@ -74,4 +75,47 @@ module Utils
       child_pids
     end
   end
+
+  def get_master_pid
+    master_pid_file = File.join(t_dir, 'tmp', 'pids', 'appctl.pid')
+    File.read(master_pid_file)
+  end
+
+  def get_pid(cmd)
+    pid = get_ps_info(cmd)[:pid]
+    pid and pid.to_i
+  end
+
+  def get_tty(cmd)
+    get_ps_info(cmd)[:tty]
+  end
+
+  def get_ps_info(cmd)
+    ps              = "ps -eo pid,tty,cmd"
+    cmd_pattern     = Regexp.escape(cmd)
+    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S)\s+' + cmd_pattern
+
+    run_simple(unescape(ps))
+    output_from(ps).match(Regexp.new(ps_line_pattern)) or {}
+  end
+
+  def terminate(pid)
+    Process.kill(:QUIT, pid)
+
+    begin
+      Timeout.timeout(60) do
+        sleep 0.2 while Process.getpgid(pid) != -1
+      end
+    rescue Timeout::Error
+      Process.kill(:KILL, pid)
+    rescue Errno::ESRCH
+    end
+  end
+end
+
+World(Utils)
+
+After do |scenario|
+  cmd = "appctl master[cucumber-puppet_master.testing] start"
+  pid = get_pid(cmd) and terminate(pid)
 end

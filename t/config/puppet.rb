@@ -9,6 +9,10 @@ main do |m, config, controller|
   call(config[:environment])
 end
 
+testing do |m, config, controller|
+  call :common
+end
+
 development do |m, config, controller|
   call :common
 end
