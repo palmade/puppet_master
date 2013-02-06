@@ -4,7 +4,6 @@ Feature: master can be started
   I want to start the master
   So that it will serve my needs
 
-  @no-clobber
   Scenario: started as a daemon
     Given a directory named "config"
     And a directory named "script"
@@ -47,9 +46,12 @@ Feature: master can be started
 
       m.proc_tag = proc_tag
       fam.puppet(:proc_tag => proc_tag,
-                 :adapter => :rails,
+                 :adapter => MockAdapter,
                  :adapter_options => config.symbolize_keys,
                  :count => count)
+    end
+
+    module MockAdapter
     end
     """
     And a file named "script/appctl" with:
@@ -62,6 +64,10 @@ Feature: master can be started
     require 'palmade/puppet_master'
 
     Palmade::PuppetMaster.runner!(ARGV)
+    """
+    And a file named "config.ru" with:
+    """
+    run lambda { |env| [200, {'Content-Type'=>'text/plain'}, StringIO.new("Hello World!\n")] }
     """
     And there are no other instances running
     When I run `ruby script/appctl start`

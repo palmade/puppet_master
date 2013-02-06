@@ -7,3 +7,4 @@ coverage/*
 spec/logs/*
 *.swp
 *.swo
+tmp/*
