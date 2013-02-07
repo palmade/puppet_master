@@ -1,3 +1,4 @@
+@slow
 Feature: worker dies on dead master
 
   As a worker
