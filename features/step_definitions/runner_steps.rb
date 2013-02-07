@@ -1,4 +1,4 @@
-Given /^there are (\d+) ?(.+)? workers$/ do |n, type|
+Given /^there (?:is|are) (\d+) ?(.+)? worker(?:s)?$/ do |n, type|
   count  = n.to_i
   puppet =
     case type
@@ -139,4 +139,8 @@ Then /^the file "([^"]*)" should contain the pid$/ do |pid_file|
   cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
   pid = get_pid(cmd)
   step "the file \"#{pid_file}\" should contain \"#{pid}\""
+end
+
+Given /^a puppet_master instance is running$/ do
+  step "there is 1 base worker"
 end

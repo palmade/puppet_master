@@ -77,3 +77,11 @@ Feature: master can be started
       | tmp/pids/appctl.pid |
       | log/appctl.log |
     And the file "tmp/pids/appctl.pid" should contain the pid
+
+  Scenario: started as a daemon with another instance already running
+    Given a puppet_master instance is running
+    When I run `ruby script/appctl start`
+    Then it should fail with:
+    """
+    already running
+    """
