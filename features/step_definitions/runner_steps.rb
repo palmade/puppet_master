@@ -1,4 +1,4 @@
-Given /^there (?:is|are) (\d+) ?(.+)? worker(?:s)?$/ do |n, type|
+Given /^puppet_master has been configured for (\d+) ?(.+)? worker(?:s)?$/ do |n, type|
   count  = n.to_i
   puppet =
     case type
@@ -77,6 +77,17 @@ appctl
 <<-config_ru
   run lambda { |env| [200, {'Content-Type'=>'text/plain'}, StringIO.new("Hello World!\n")] }
 config_ru
+end
+
+Given /^puppet_master has been configured$/ do
+  step "puppet_master has been configured for 1 base worker"
+end
+
+
+Given /^there (?:is|are) (\d+) ?(.+)? worker(?:s)?$/ do |n, type|
+  count = n.to_i
+
+  step "puppet_master has been configured for #{count} #{type} workers"
   step 'there are no other instances running'
   step 'I run `ruby script/appctl start`'
   step "it should spawn #{count} workers"
@@ -144,3 +155,11 @@ end
 Given /^a puppet_master instance is running$/ do
   step "there is 1 base worker"
 end
+
+Then /^there should be no instance running$/ do
+  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
+  expect {
+    get_pid(cmd)
+  }.to raise_error Errno::ESRCH
+end
+

@@ -62,7 +62,7 @@ module Utils
 
   def find_match(haystack, needle)
     matches = find_matches(haystack, needle)
-    matches.size.should eql 1
+    matches.size.should satisfy { |v| v <= 1 }
     matches[0]
   end
 
@@ -78,6 +78,6 @@ After do |scenario|
   cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
   begin
     pid = get_pid(cmd) and terminate(pid)
-  rescue RSpec::Expectations::ExpectationNotMetError
+  rescue Errno::ESRCH
   end
 end
