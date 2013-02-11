@@ -14,12 +14,26 @@ module Utils
   end
 
   def get_pid(cmd)
-    pid = get_ps_info(cmd)[:pid]
+    processes = get_ps_info(cmd)
+    begin
+      processes.size.should eql 1
+    rescue RSpec::Expectations::ExpectationNotMetError
+      raise Errno::ESRCH
+    end
+
+    pid = processes[0][:pid]
     pid and pid.to_i
   end
 
   def get_tty(cmd)
-    get_ps_info(cmd)[:tty]
+    processes = get_ps_info(cmd)
+    begin
+      processes.size.should eql 1
+    rescue RSpec::Expectations::ExpectationNotMetError
+      raise Errno::ESRCH
+    end
+
+    get_ps_info(cmd)[0][:tty] || raise(Errno::ESRCH)
   end
 
   def get_ps_info(cmd)
@@ -28,7 +42,7 @@ module Utils
 
     run_simple(unescape(ps))
 
-    info = find_match(output_from(ps), ps_line_pattern)
+    info = find_matches(output_from(ps), ps_line_pattern)
 
     info or raise Errno::ESRCH
   end
@@ -58,12 +72,6 @@ module Utils
 
   def murder(pid)
     Process.kill(:KILL, pid)
-  end
-
-  def find_match(haystack, needle)
-    matches = find_matches(haystack, needle)
-    matches.size.should satisfy { |v| v <= 1 }
-    matches[0]
   end
 
   def find_matches(haystack, needle)
