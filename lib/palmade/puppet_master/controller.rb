@@ -165,8 +165,14 @@ module Palmade::PuppetMaster
         cmd = [@runner.start_ctx[0]].concat(@runner.start_ctx[:argv] +
                                               ["-P", reexec_pid_file_path])
 
-        @logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
-        exec(*cmd)
+        begin
+          @logger.info "executing #{cmd.inspect} (in #{Dir.pwd})"
+          exec(*cmd)
+        rescue Errno::EACCES
+          raise if cmd =~ /^ruby /
+          cmd = cmd.unshift 'ruby'
+          retry
+        end
       end
     end
 

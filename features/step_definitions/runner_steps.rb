@@ -52,10 +52,12 @@ appctl_yml
     proc_tag = "cucumber-puppet_master.testing"
     count = #{count}
 
+    adapter_options = config.symbolize_keys
+
     m.proc_tag = proc_tag
     fam.#{puppet}(:proc_tag => proc_tag,
                :adapter => MockAdapter,
-               :adapter_options => config.symbolize_keys,
+               :adapter_options => adapter_options,
                :count => count)
   end
 
@@ -83,7 +85,6 @@ Given /^puppet_master has been configured$/ do
   step "puppet_master has been configured for 1 base worker"
 end
 
-
 Given /^there (?:is|are) (\d+) ?(.+)? worker(?:s)?$/ do |n, type|
   count = n.to_i
 
@@ -98,15 +99,22 @@ Then /^it should spawn (\d+) worker(?:s)?$/ do |n|
   cmd   = Regexp.escape("appctl master[cucumber-puppet_master.testing] start")
 
   size = nil
-  Timeout.timeout(30) do
-    loop do
-      size = get_children(cmd).size
-      sleep 0.2 if size < count
-      break if size >= count
+  expect {
+    Timeout.timeout(30) do
+      loop do
+        begin
+          size = get_children(cmd).size
+          sleep 0.2 if size < count
+          break if size >= count
+        rescue
+          retry
+        end
+      end
     end
-  end rescue Timeout::Error
+  }.to_not raise_error(Timeout::Error),
+           "master was not able to spawn #{n} workers in time"
 
-  size.should eql count
+  size.should be == count
   @children = get_children(cmd)
 end
 
@@ -136,7 +144,7 @@ Then /^all workers should die within a minute$/ do
 end
 
 Given "there are no other instances running" do
-  cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
+  cmd = old_and_new_master_pattern
   pid = get_pid(cmd) and terminate(pid) rescue Errno::ESRCH
 end
 
@@ -163,3 +171,39 @@ Then /^there should be no instance running$/ do
   }.to raise_error Errno::ESRCH
 end
 
+Then /^there should be a new instance running$/ do
+  cmd = old_and_new_master_pattern
+
+  begin
+    Timeout.timeout(30) do
+      sleep 0.2 while get_ps_info(cmd).size < 2
+    end
+  rescue Timeout::Error
+    get_ps_info(cmd).size.should eql 2
+  end
+end
+
+Then /^the old instance should die within a minute$/ do
+  step "there should be a new instance running"
+  cmd = old_and_new_master_pattern
+
+  pid = get_ps_info(cmd).find { |ps|
+    ps[:cmd].strip == "appctl master (old) [cucumber-puppet_master.testing]"
+  }[:pid]
+
+  begin
+    Timeout.timeout(60) do
+      sleep 0.2 while running?(pid)
+    end
+  end
+
+  running?(pid).should be_false
+end
+
+
+Then /^the old instance should have its arg list indicated as such$/ do
+  step "there should be a new instance running"
+  cmd = old_and_new_master_pattern
+
+  get_ps_info(cmd).map { |ps| ps[:cmd].strip }.should include "appctl master (old) [cucumber-puppet_master.testing]"
+end

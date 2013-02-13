@@ -38,7 +38,7 @@ module Utils
 
   def get_ps_info(cmd)
     ps              = "ps -o pid,tty,cmd -C ruby"
-    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S+)\s+' + cmd
+    ps_line_pattern = '(?<pid>\d+)\s+(?<tty>\S+)\s+(?<cmd>' + cmd + ')'
 
     run_simple(unescape(ps))
 
@@ -70,6 +70,12 @@ module Utils
     end
   end
 
+  def running?(pid)
+    !!Process.kill(0, pid.to_i)
+  rescue Errno::ESRCH
+    false
+  end
+
   def murder(pid)
     Process.kill(:KILL, pid)
   end
@@ -80,7 +86,22 @@ module Utils
   end
 end
 
-World(Utils)
+module Patterns
+  def old_and_new_master_pattern
+    old = Regexp.escape('(old)')
+    cmd = Regexp.escape("[cucumber-puppet_master.testing]")
+    "appctl master(?: #{old} )?#{cmd}"
+  end
+
+  def old_master_pattern
+    Regexp.escape('appctl master (old) [cucumber-puppet_master.testing]')
+  end
+
+  def new_master_pattern
+  end
+end
+
+World(Utils, Patterns)
 
 After do |scenario|
   cmd = Regexp.escape("appctl master[cucumber-puppet_master.testing]")
@@ -88,4 +109,8 @@ After do |scenario|
     pid = get_pid(cmd) and terminate(pid)
   rescue Errno::ESRCH
   end
+end
+
+Before('@slow-reexec') do
+  @slow_reexec = true
 end
