@@ -75,29 +75,41 @@ module Palmade::PuppetMaster
 
       def load_sinatra_adapter
         root = @adapter_options[:root] || Dir.pwd
-        sinatra_boot = File.join(root, "config/sinatra.rb")
-        if File.exists?(sinatra_boot)
 
-          Object.const_set('SINATRA_ENV', RACK_ENV)
-          Object.const_set('SINATRA_ROOT', @adapter_options[:root])
-          Object.const_set('SINATRA_PREFIX', @adapter_options[:prefix])
-          Object.const_set('SINATRA_OPTIONS', @adapter_options)
-
-          require(sinatra_boot)
-
-          if defined?(::Sinatra)
-            if Object.const_defined?('SINATRA_APP')
-              Object.const_get('SINATRA_APP')
-            elsif defined?(::Sinatra::Application)
-              Sinatra::Application
-            else
-              raise ArgumentError, "No sinatra app defined"
-            end
-          else
-            raise LoadError, "It looks like Sinatra gem is not loaded properly (::Sinatra not defined)"
-          end
+        if @adapter_options.include?(:sinatra_boot)
+          sinatra_boot = @adapter_options[:sinatra_boot]
         else
-          raise ArgumentError, "Set to load sinatra adapter, but could not find config/sinatra.rb"
+          sinatra_boot = File.join(root, "config/sinatra.rb")
+        end
+
+        Object.const_set('SINATRA_ENV', RACK_ENV)
+        Object.const_set('SINATRA_ROOT', @adapter_options[:root])
+        Object.const_set('SINATRA_PREFIX', @adapter_options[:prefix])
+        Object.const_set('SINATRA_OPTIONS', @adapter_options)
+
+        case sinatra_boot
+        when File
+          if File.exists?(sinatra_boot)
+            require(sinatra_boot)
+            if defined?(::Sinatra)
+              if Object.const_defined?('SINATRA_APP')
+                Object.const_get('SINATRA_APP')
+              elsif defined?(::Sinatra::Application)
+                Sinatra::Application
+              else
+                raise ArgumentError, "No sinatra app defined"
+              end
+            else
+              raise LoadError, "It looks like Sinatra gem is not loaded properly (::Sinatra not defined)"
+            end
+
+          else
+            raise ArgumentError, "Set to load sinatra adapter, but could not find config/sinatra.rb"
+          end
+        when Proc
+          sinatra_boot.call
+        else
+          raise ArgumentError, "#{sinatra_boot} not supported"
         end
       end
 
