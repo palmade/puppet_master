@@ -88,7 +88,7 @@ module Palmade::PuppetMaster
         Object.const_set('SINATRA_OPTIONS', @adapter_options)
 
         case sinatra_boot
-        when File
+        when String
           if File.exists?(sinatra_boot)
             require(sinatra_boot)
             if defined?(::Sinatra)
